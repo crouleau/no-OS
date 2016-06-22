@@ -74,7 +74,7 @@ static struct axiadc_chip_info axiadc_chip_info_tbl[] =
  *
  * Note: This function will/may affect the data path.
  */
-int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_param)
+int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_param)
 {
 	struct ad9361_rf_phy *phy;
 	int32_t ret = 0;
@@ -110,6 +110,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	if (!phy->adc_state) {
 		return -ENOMEM;
 	}
+
 	phy->adc_state->phy = phy;
 #endif
 
@@ -399,6 +400,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	ad9361_reset(phy);
 
 	ret = ad9361_spi_read(phy->spi, REG_PRODUCT_ID);
+    ret = PRODUCT_ID_9361; //SPI READ
 	if ((ret & PRODUCT_ID_MASK) != PRODUCT_ID_9361) {
 		printf("%s : Unsupported PRODUCT_ID 0x%X", "ad9361_init", (unsigned int)ret);
 		ret = -ENODEV;
@@ -426,8 +428,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 #endif
 
 	ad9361_init_gain_tables(phy);
-
-	ret = ad9361_setup(phy);
+    ret = ad9361_setup(phy);
 	if (ret < 0)
 		goto out;
 

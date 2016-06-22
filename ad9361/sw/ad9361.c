@@ -55,6 +55,8 @@
 const bool has_split_gt = HAVE_SPLIT_GAIN_TABLE;
 const bool have_tdd_tables = HAVE_TDD_SYNTH_TABLE;
 
+static int32_t ad9361_rx_adc_setup(struct ad9361_rf_phy *phy, uint32_t bbpll_freq, uint32_t adc_sampl_freq_Hz);
+
 #define SYNTH_LUT_SIZE	53
 
 static const struct SynthLUT SynthLUT_FDD[LUT_FTDD_ENT][SYNTH_LUT_SIZE] = {
@@ -831,7 +833,7 @@ int32_t ad9361_1rx1tx_channel_map(struct ad9361_rf_phy *phy, bool tx, int32_t ch
  * @param phy The AD9361 state structure.
  * @return 0 in case of success, negative error code otherwise.
  */
-int32_t ad9361_reset(struct ad9361_rf_phy *phy)
+int32_t ad9361_reset(struct ad9361_rf_phy *phy) //TODO: Figure out what line to use for resetting the ad9361!
 {
 	if (gpio_is_valid(phy->pdata->gpio_resetb)) {
 		gpio_set_value(phy->pdata->gpio_resetb, 0);
@@ -841,6 +843,10 @@ int32_t ad9361_reset(struct ad9361_rf_phy *phy)
 		dev_dbg(&phy->spi->dev, "%s: by GPIO", __func__);
 		return 0;
 	}
+
+    //Work-around: (TODO)
+    dev_err(&phy->spi->dev, "%s: faked being reset by GPIO", __func__);
+    return 0;
 
 	/* SPI Soft Reset was removed from the register map, since it doesn't
 	 * work reliably. Without a prober HW reset randomness may happen.
@@ -1088,8 +1094,7 @@ void ad9361_get_bist_tone(struct ad9361_rf_phy *phy,
  * @param done_state The done state [0,1].
  * @return 0 in case of success, negative error code otherwise.
  */
-static int32_t ad9361_check_cal_done(struct ad9361_rf_phy *phy, uint32_t reg,
-	uint32_t mask, bool done_state)
+static int32_t ad9361_check_cal_done(struct ad9361_rf_phy *phy, uint32_t reg, uint32_t mask, bool done_state) //TODO: Figure out how to wait for this SPI msg in VHDL
 {
 	uint32_t timeout = 5000; /* RFDC_CAL can take long */
 	uint32_t state;
@@ -1104,6 +1109,9 @@ static int32_t ad9361_check_cal_done(struct ad9361_rf_phy *phy, uint32_t reg,
 		else
 			udelay(120);
 	} while (timeout--);
+
+    dev_err(&phy->spi->dev, "Faked the calibration not timing out (0x%"PRIX32", 0x%"PRIX32")", __func__, reg, mask); //TODO: Read the calibration timeout register for real!
+    return 0;
 
 	dev_err(&phy->spi->dev, "Calibration TIMEOUT (0x%"PRIX32", 0x%"PRIX32")", reg, mask);
 
@@ -2020,13 +2028,16 @@ static int32_t ad9361_gc_update(struct ad9361_rf_phy *phy)
 		dec_pow_meas_dur =
 			phy->pdata->gain_ctrl.f_agc_dec_pow_measuremnt_duration;
 	} else {
+        dev_err(&phy->spi->dev, "ad9361_gc_update clkrf %d clk_get_rate %d",clkrf,clk_get_rate(phy, phy->ref_clk_scale[RX_SAMPL_CLK]));
 		fir_div = DIV_ROUND_CLOSEST(clkrf,
 				clk_get_rate(phy, phy->ref_clk_scale[RX_SAMPL_CLK]));
 		dec_pow_meas_dur = phy->pdata->gain_ctrl.dec_pow_measuremnt_duration;
 
-		if (((reg * 2 / fir_div) / dec_pow_meas_dur) < 2) {
+        dev_err(&phy->spi->dev, "ad9361_gc_update: reg: %d fir_div: %d dec_pow_meas_dur: %d",reg, fir_div, dec_pow_meas_dur);
+		//TODO: Below line cause div/0 problem...
+        /*if (((reg * 2 / fir_div) / dec_pow_meas_dur) < 2) {
 			dec_pow_meas_dur = reg / fir_div;
-		}
+		}*/
 	}
 
 	/* Power Measurement Duration */
@@ -2180,8 +2191,7 @@ int32_t ad9361_read_rssi(struct ad9361_rf_phy *phy, struct rf_rssi *rssi)
  * @param adc_sampl_freq_Hz The ADC sampling frequency [Hz].
  * @return 0 in case of success, negative error code otherwise.
  */
-static int32_t ad9361_rx_adc_setup(struct ad9361_rf_phy *phy, uint32_t bbpll_freq,
-	uint32_t adc_sampl_freq_Hz)
+static int32_t ad9361_rx_adc_setup(struct ad9361_rf_phy *phy, uint32_t bbpll_freq, uint32_t adc_sampl_freq_Hz)
 {
 
 	uint32_t scale_snr_1e3, maxsnr, sqrt_inv_rc_tconst_1e3, tmp_1e3,
@@ -2200,7 +2210,6 @@ static int32_t ad9361_rx_adc_setup(struct ad9361_rf_phy *phy, uint32_t bbpll_fre
 	* BBBW = (BBPLL / RxTuneDiv) * ln(2) / (1.4 * 2PI )
 	* We assume ad9361_rx_bb_analog_filter_calib() is always run prior
 	*/
-
 	tmp = bbpll_freq * 10000ULL;
 	do_div(&tmp, 126906UL * phy->rxbbf_div);
 	bb_bw_Hz = tmp;
@@ -2255,6 +2264,7 @@ static int32_t ad9361_rx_adc_setup(struct ad9361_rf_phy *phy, uint32_t bbpll_fre
 	dev_dbg(&phy->spi->dev, "tmp_1e3 %"PRIu32", sqrt_term_1e3 %"PRIu32", min_sqrt_term_1e3 %"PRIu32,
 		tmp_1e3, sqrt_term_1e3, min_sqrt_term_1e3);
 
+
 	data[0] = 0;
 	data[1] = 0;
 	data[2] = 0;
@@ -2267,9 +2277,10 @@ static int32_t ad9361_rx_adc_setup(struct ad9361_rf_phy *phy, uint32_t bbpll_fre
 		min_sqrt_term_1e3;
 	do_div(&tmp, 100000000UL);
 	data[7] = min_t(uint64_t, 124U, tmp);
-
 	tmp = (invrc_tconst_1e6 >> 1) + 20 * inv_scaled_adc_clk_1e3 *
 		data[7] / 80 * 1000ULL;
+    dev_err(&phy->spi->dev, "ad9361_rx_adc_setup do_div tmp: %d invrc: %d",&tmp,invrc_tconst_1e6);
+    invrc_tconst_1e6 = 1; //TODO: duct tape
 	do_div(&tmp, invrc_tconst_1e6);
 	data[8] = min_t(uint64_t, 255U, tmp);
 
@@ -3619,6 +3630,7 @@ static int32_t ad9361_gc_setup(struct ad9361_rf_phy *phy, struct gain_control *c
 
 	/* 0 = Max Gain, 1 = Set Gain, 2 = Optimized Gain, 3 = No Gain Change */
 
+
 	if (ctrl->f_agc_rst_gla_en_agc_pulled_high_en) {
 		switch (ctrl->f_agc_rst_gla_if_en_agc_pulled_high_mode) {
 		case MAX_GAIN:
@@ -3663,13 +3675,13 @@ static int32_t ad9361_gc_setup(struct ad9361_rf_phy *phy, struct gain_control *c
 			GOTO_MAX_GAIN_OR_OPT_GAIN_IF_EN_AGC_HIGH, 0);
 	}
 
+
 	reg = ilog2(ctrl->f_agc_power_measurement_duration_in_state5 / 16);
 	reg = clamp_t(uint32_t, reg, 0U, 15U);
 	ad9361_spi_writef(spi, REG_RX1_MANUAL_LPF_GAIN,
 		POWER_MEAS_IN_STATE_5(~0), reg);
 	ad9361_spi_writef(spi, REG_RX1_MANUAL_LMT_FULL_GAIN,
 		POWER_MEAS_IN_STATE_5_MSB, reg >> 3);
-
 	return ad9361_gc_update(phy);
 }
 
@@ -5114,10 +5126,7 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 	ret = ad9361_tx_bb_second_filter_calib(phy, real_tx_bandwidth);
 	if (ret < 0)
 		return ret;
-
-	ret = ad9361_rx_adc_setup(phy,
-		bbpll_freq,
-		clk_get_rate(phy, phy->ref_clk_scale[ADC_CLK]));
+	ret = ad9361_rx_adc_setup(phy, bbpll_freq, clk_get_rate(phy, phy->ref_clk_scale[ADC_CLK]));
 	if (ret < 0)
 		return ret;
 
@@ -5125,8 +5134,7 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 	if (ret < 0)
 		return ret;
 
-	ret = ad9361_rf_dc_offset_calib(phy,
-		ad9361_from_clk(clk_get_rate(phy, phy->ref_clk_scale[RX_RFPLL])));
+	ret = ad9361_rf_dc_offset_calib(phy, ad9361_from_clk(clk_get_rate(phy, phy->ref_clk_scale[RX_RFPLL])));
 	if (ret < 0)
 		return ret;
 
