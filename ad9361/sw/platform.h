@@ -42,8 +42,8 @@
 /******************************************************************************/
 /***************************** Include Files **********************************/
 /******************************************************************************/
-#include <stdint.h>
-#include "util.h"
+#include "stdint.h"
+#include "../util.h"
 
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
@@ -139,8 +139,7 @@ enum adc_data_sel {
 int32_t spi_init(uint32_t device_id,
 				 uint8_t  clk_pha,
 				 uint8_t  clk_pol);
-int32_t spi_read(struct spi_device *spi,
-				 uint8_t *data,
+int32_t spi_read(uint8_t *data,
 				 uint8_t bytes_number);
 int spi_write_then_read(struct spi_device *spi,
 		const unsigned char *txbuf, unsigned n_tx,
