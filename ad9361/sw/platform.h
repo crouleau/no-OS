@@ -36,14 +36,14 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
-#ifndef PLATFORM_H_
+//#ifndef PLATFORM_H_
 #define PLATFORM_H_
 
 /******************************************************************************/
 /***************************** Include Files **********************************/
 /******************************************************************************/
 #include "stdint.h"
-#include "../util.h"
+#include "util.h"
 
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
@@ -157,4 +157,4 @@ unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg);
 void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val);
 int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel);
 void axiadc_idelay_set(struct axiadc_state *st, unsigned lane, unsigned val);
-#endif
+//#endif

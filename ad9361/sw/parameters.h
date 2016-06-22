@@ -52,6 +52,12 @@
 
 #define GPIO_DEVICE_ID				0
 #define GPIO_RESET_PIN				0
-#define SPI_DEVICE_ID				0
+#define SPI_DEVICE_ID               0
+
+#define AD9361_RX_0_BASEADDR 0 //TODO
+#define AD9361_RX_1_BASEADDR 0 //TODO
+#define AD9361_TX_0_BASEADDR 0 //TODO
+#define AD9361_TX_1_BASEADDR 0 //TODO
+
 
 #endif // __PARAMETERS_H__
