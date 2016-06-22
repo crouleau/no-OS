@@ -42,8 +42,8 @@
 /******************************************************************************/
 #include <stdint.h>
 #include <stdlib.h>
-#include <xil_cache.h>
-#include <xil_io.h>
+//#include <xil_cache.h>
+//#include <xil_io.h>
 #include "adc_core.h"
 #include "parameters.h"
 #include "util.h"
@@ -66,10 +66,10 @@ void adc_read(struct ad9361_rf_phy *phy, uint32_t regAddr, uint32_t *data)
 	switch (phy->id_no)
 	{
 	case 0:
-		*data = Xil_In32(AD9361_RX_0_BASEADDR + regAddr);
+		//*data = Xil_In32(AD9361_RX_0_BASEADDR + regAddr);
 		break;
 	case 1:
-		*data = Xil_In32(AD9361_RX_1_BASEADDR + regAddr);
+		//*data = Xil_In32(AD9361_RX_1_BASEADDR + regAddr);
 		break;
 	default:
 		break;
@@ -84,10 +84,10 @@ void adc_write(struct ad9361_rf_phy *phy, uint32_t regAddr, uint32_t data)
 	switch (phy->id_no)
 	{
 	case 0:
-		Xil_Out32(AD9361_RX_0_BASEADDR + regAddr, data);
+		//Xil_Out32(AD9361_RX_0_BASEADDR + regAddr, data);
 		break;
 	case 1:
-		Xil_Out32(AD9361_RX_1_BASEADDR + regAddr, data);
+		//Xil_Out32(AD9361_RX_1_BASEADDR + regAddr, data);
 		break;
 	default:
 		break;
@@ -99,7 +99,7 @@ void adc_write(struct ad9361_rf_phy *phy, uint32_t regAddr, uint32_t data)
 *******************************************************************************/
 void adc_dma_read(uint32_t regAddr, uint32_t *data)
 {
-	*data = Xil_In32(CF_AD9361_RX_DMA_BASEADDR + regAddr);
+	//*data = Xil_In32(CF_AD9361_RX_DMA_BASEADDR + regAddr);
 }
 
 /***************************************************************************//**
@@ -107,7 +107,7 @@ void adc_dma_read(uint32_t regAddr, uint32_t *data)
 *******************************************************************************/
 void adc_dma_write(uint32_t regAddr, uint32_t data)
 {
-	Xil_Out32(CF_AD9361_RX_DMA_BASEADDR + regAddr, data);
+	//Xil_Out32(CF_AD9361_RX_DMA_BASEADDR + regAddr, data);
 }
 
 /***************************************************************************//**
