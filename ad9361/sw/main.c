@@ -51,6 +51,7 @@
 #ifdef XILINX_PLATFORM
 #include <xil_cache.h>
 #endif
+
 #if defined XILINX_PLATFORM || defined LINUX_PLATFORM
 #include "adc_core.h"
 #include "dac_core.h"
@@ -367,6 +368,7 @@ struct ad9361_rf_phy *ad9361_phy_b;
 *******************************************************************************/
 int main(void)
 {
+	printf("Main loop\r\n");
 #ifdef XILINX_PLATFORM
 	Xil_ICacheEnable();
 	Xil_DCacheEnable();
@@ -401,6 +403,7 @@ int main(void)
 	gpio_direction(default_init_param.gpio_resetb, 1);
 
 	spi_init(SPI_DEVICE_ID, 1, 0);
+	printf("\r\nSPI INIT done\r\n");
 
 #if defined FMCOMMS5 || defined PICOZED_SDR || defined PICOZED_SDR_CMOS
 	default_init_param.xo_disable_use_ext_refclk_enable = 1;
@@ -414,9 +417,10 @@ int main(void)
 #endif
 
 	ad9361_init(&ad9361_phy, &default_init_param);
-
 	ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
 	ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
+    printf("AD9361 INIT done\r\n");
+
 
 #ifdef FMCOMMS5
 #ifdef LINUX_PLATFORM
@@ -442,18 +446,19 @@ int main(void)
 
 #ifndef AXI_ADC_NOT_PRESENT
 #if defined XILINX_PLATFORM || defined LINUX_PLATFORM
-#ifdef DAC_DMA
-#ifdef FMCOMMS5
-	dac_init(ad9361_phy_b, DATA_SEL_DMA, 0);
-#endif
-	dac_init(ad9361_phy, DATA_SEL_DMA, 1);
-#else
-#ifdef FMCOMMS5
-	dac_init(ad9361_phy_b, DATA_SEL_DDS, 0);
-#endif
-	dac_init(ad9361_phy, DATA_SEL_DDS, 1);
-#endif
-#endif
+	printf("XILINX PLATFORM OR LINUX PLATFORM\r\n");
+	#ifdef DAC_DMA
+		#ifdef FMCOMMS5
+			dac_init(ad9361_phy_b, DATA_SEL_DMA, 0);
+		#endif
+			dac_init(ad9361_phy, DATA_SEL_DMA, 1);
+	#else
+		#ifdef FMCOMMS5
+			dac_init(ad9361_phy_b, DATA_SEL_DDS, 0);
+		#endif
+			dac_init(ad9361_phy, DATA_SEL_DDS, 1);
+		#endif
+	#endif
 #endif
 
 #ifdef FMCOMMS5
@@ -500,7 +505,7 @@ int main(void)
 	}
 #endif
 
-	printf("Done.\n");
+	printf("Done.\r\n");
 
 #ifdef XILINX_PLATFORM
 	Xil_DCacheDisable();
