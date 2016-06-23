@@ -43,25 +43,8 @@
 #include "stdint.h"
 #include "util.h"
 #include "platform.h"
-
-FILE *spi_file;
-
-/***************************************************************************//**
- * @brief spi_log_open -- opens a text file for logging SPI read/write
-*******************************************************************************/
-void spi_log_open(const char *filename)
-{
-    spi_file = fopen(filename, "w");
-}
-
-/***************************************************************************//**
- * @brief spi_log_close -- closes the file handle for logging SPI read/write
-*******************************************************************************/
-void spi_log_close(void)
-{
-    fclose(spi_file);
-}
-
+#include <string.h>
+#include "file_io.h"
 
 /***************************************************************************//**
  * @brief usleep
@@ -78,6 +61,7 @@ int32_t spi_init(uint32_t device_id,
 				 uint8_t  clk_pha,
 				 uint8_t  clk_pol)
 {
+    log_string("SPI_INIT_NOT_PROGRAMMED,,,\n");
 	return device_id;
 }
 
@@ -86,6 +70,7 @@ int32_t spi_init(uint32_t device_id,
 *******************************************************************************/
 int32_t spi_read(uint8_t *data, uint8_t bytes_number)
 {
+    log_string("SPI_READ_NOT_PROGRAMMED,,,\n");
 	return 0;
 }
 
@@ -95,16 +80,42 @@ int32_t spi_read(uint8_t *data, uint8_t bytes_number)
 int spi_write_then_read(struct spi_device *spi, const uint8_t *txbuf, uint8_t n_tx, uint8_t *rxbuf, uint8_t n_rx)
 {
     uint8_t i;
-    char str_buf[200];
+    uint8_t n;
+    char str_buf[100];
 
-    sprintf(str_buf,"x");
-    for(i=0; i<n_tx; i++)
+    //CSV:
+    /*
+        header,     description,    register,       data
+        spi,        read,           bytes[0-1],     num_read
+        spi,        write,          bytes[0-1],     bytes[2-n_tx]
+    */
+
+    sprintf(str_buf,"spi,");
+    n = strlen("spi,");
+    if(n_rx>0)
     {
-        sprintf(&str_buf[i*2+1], "%02x", txbuf[i]);
+        sprintf(&str_buf[n],"read,");
+        n += strlen("read,");
+    }else{
+        sprintf(&str_buf[n],"write,");
+        n += strlen("write,");
     }
-    sprintf(&str_buf[n_tx*2+1],", %d\n",n_rx);
 
-    fputs(str_buf, spi_file);
+    sprintf(&str_buf[n],"%02x%02x,",txbuf[0],txbuf[1]);
+    n += 5;
+
+    if(n_rx>0){
+        sprintf(&str_buf[n],"%d\n",n_rx);
+    }else{
+        for(i=2; i<n_tx; i++)
+        {
+            sprintf(&str_buf[(i-2)*2+n], "%02x", txbuf[i]);
+        }
+        n += (i-2)*2;
+        sprintf(&str_buf[n],"\n");
+    }
+
+    log_string(str_buf);
 
     /*dev_spi(&spi->dev,"tx %d: ",n_tx);
     for(i=0; i<n_tx; i++)
@@ -124,15 +135,31 @@ int spi_write_then_read(struct spi_device *spi, const uint8_t *txbuf, uint8_t n_
 *******************************************************************************/
 void gpio_init(uint32_t device_id)
 {
+    log_string("NO_GPIO_INIT,,,\n");
 
 }
 
 /***************************************************************************//**
  * @brief gpio_direction
 *******************************************************************************/
-void gpio_direction(uint8_t pin, uint8_t direction)
+void gpio_direction(const char *pin_text, uint8_t pin, uint8_t direction)
 {
+    char str_buf[100];
+    uint8_t i;
+    uint8_t n;
 
+    //CSV:
+    /*
+        header,     description,    register,   data
+        gpio_dir,   pin_text_descr  pin_num,    direction
+    */
+    sprintf(str_buf,"gpio_dir,");
+    n = strlen("gpio_dir,");
+    sprintf(&str_buf[n],pin_text);
+    n +=  strlen(pin_text);
+    sprintf(&str_buf[n],",%d,%d\n",pin,direction);
+
+    log_string(str_buf);
 }
 
 /***************************************************************************//**
@@ -140,6 +167,7 @@ void gpio_direction(uint8_t pin, uint8_t direction)
 *******************************************************************************/
 bool gpio_is_valid(int number)
 {
+    log_string("GPIO_IS_VALID_NOT_PROGRAMMED,,,\n");
 	return 0;
 }
 
@@ -148,7 +176,7 @@ bool gpio_is_valid(int number)
 *******************************************************************************/
 void gpio_data(uint8_t pin, uint8_t data)
 {
-
+    log_string("GPIO_DATA_NOT_PROGRAMMED,,,\n");
 }
 
 /***************************************************************************//**
@@ -156,7 +184,7 @@ void gpio_data(uint8_t pin, uint8_t data)
 *******************************************************************************/
 void gpio_set_value(unsigned gpio, int value)
 {
-
+    log_string("GPIO_SET_VALUE_NOT_PROGRAMMED,,,\n");
 }
 
 /***************************************************************************//**
@@ -164,7 +192,7 @@ void gpio_set_value(unsigned gpio, int value)
 *******************************************************************************/
 void udelay(unsigned long usecs)
 {
-
+    log_string("udelay_not_programmed,,,\n");
 }
 
 /***************************************************************************//**
@@ -172,7 +200,9 @@ void udelay(unsigned long usecs)
 *******************************************************************************/
 void mdelay(unsigned long msecs)
 {
-
+    char str_buf[50];
+    sprintf(str_buf,"msec_delay,,,%d\n",msecs);
+    log_string(str_buf);
 }
 
 /***************************************************************************//**
@@ -180,7 +210,7 @@ void mdelay(unsigned long msecs)
 *******************************************************************************/
 unsigned long msleep_interruptible(unsigned int msecs)
 {
-
+    log_string("msleep_interrupible_NOT_PROGRAMMED,,,\n");
 	return 0;
 }
 
@@ -197,6 +227,7 @@ void axiadc_init(struct ad9361_rf_phy *phy)
 *******************************************************************************/
 int axiadc_post_setup(struct ad9361_rf_phy *phy)
 {
+    log_string("NEED TO DELETE axiadc_post_setup!,,,\n");
 	return 0;
 }
 
@@ -205,6 +236,7 @@ int axiadc_post_setup(struct ad9361_rf_phy *phy)
 *******************************************************************************/
 unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg)
 {
+    log_string("NEED TO DELETE axiadc_read!,,,\n");
 	return 0;
 }
 
@@ -213,7 +245,7 @@ unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg)
 *******************************************************************************/
 void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val)
 {
-
+    log_string("NEED TO DELETE axiadc_write!,,,\n");
 }
 
 /***************************************************************************//**
@@ -221,6 +253,7 @@ void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val)
 *******************************************************************************/
 int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel)
 {
+    log_string("NEED TO DELETE axiadc_set_pnsel!,,,\n");
 	return 0;
 }
 
@@ -230,5 +263,5 @@ int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel)
 void axiadc_idelay_set(struct axiadc_state *st,
 				unsigned lane, unsigned val)
 {
-
+    log_string("NEED TO DELETE axiadc_idelay_set!,,,\n");
 }

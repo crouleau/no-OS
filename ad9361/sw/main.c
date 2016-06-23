@@ -47,6 +47,7 @@
 #ifdef CONSOLE_COMMANDS
 #include "command.h"
 #include "console.h"
+#include "file_io.h"
 #endif
 #ifdef XILINX_PLATFORM
 #include <xil_cache.h>
@@ -384,100 +385,26 @@ int main(void)
 #endif
 
 	// NOTE: The user has to choose the GPIO numbers according to desired
-	// carrier board.
+	// carrier board.f
 	default_init_param.gpio_resetb = GPIO_RESET_PIN;
-#ifdef FMCOMMS5
-	default_init_param.gpio_sync = GPIO_SYNC_PIN;
-	default_init_param.gpio_cal_sw1 = GPIO_CAL_SW1_PIN;
-	default_init_param.gpio_cal_sw2 = GPIO_CAL_SW2_PIN;
-	default_init_param.rx1rx2_phase_inversion_en = 1;
-#else
+
 	default_init_param.gpio_sync = -1;
 	default_init_param.gpio_cal_sw1 = -1;
 	default_init_param.gpio_cal_sw2 = -1;
-#endif
 
-#ifdef LINUX_PLATFORM
-	gpio_init(default_init_param.gpio_resetb);
-#else
 	gpio_init(GPIO_DEVICE_ID);
-#endif
-	gpio_direction(default_init_param.gpio_resetb, 1);
+
+	gpio_direction("GPIO_RESET_PIN",default_init_param.gpio_resetb, 1);
 
 	spi_init(SPI_DEVICE_ID, 1, 0);
 	printf("\r\nSPI INIT done\r\n");
 
-#if defined FMCOMMS5 || defined PICOZED_SDR || defined PICOZED_SDR_CMOS
-	default_init_param.xo_disable_use_ext_refclk_enable = 1;
-#endif
-
-#ifdef PICOZED_SDR_CMOS
-	default_init_param.lvds_rx_onchip_termination_enable = 0;
-	default_init_param.lvds_mode_enable = 0;
-	default_init_param.full_port_enable = 1;
-	default_init_param.digital_interface_tune_fir_disable = 1;
-#endif
 
 	ad9361_init(&ad9361_phy, &default_init_param);
 	ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
 	ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
     printf("AD9361 INIT done\r\n");
 
-
-#ifdef FMCOMMS5
-#ifdef LINUX_PLATFORM
-	gpio_init(default_init_param.gpio_sync);
-#endif
-	gpio_direction(default_init_param.gpio_sync, 1);
-	default_init_param.id_no = 1;
-	default_init_param.gpio_resetb = GPIO_RESET_PIN_2;
-#ifdef LINUX_PLATFORM
-	gpio_init(default_init_param.gpio_resetb);
-#endif
-	default_init_param.gpio_sync = -1;
-	default_init_param.gpio_cal_sw1 = -1;
-	default_init_param.gpio_cal_sw2 = -1;
-	default_init_param.rx_synthesizer_frequency_hz = 2300000000UL;
-	default_init_param.tx_synthesizer_frequency_hz = 2300000000UL;
-	gpio_direction(default_init_param.gpio_resetb, 1);
-	ad9361_init(&ad9361_phy_b, &default_init_param);
-
-	ad9361_set_tx_fir_config(ad9361_phy_b, tx_fir_config);
-	ad9361_set_rx_fir_config(ad9361_phy_b, rx_fir_config);
-#endif
-
-#ifndef AXI_ADC_NOT_PRESENT
-#if defined XILINX_PLATFORM || defined LINUX_PLATFORM
-	printf("XILINX PLATFORM OR LINUX PLATFORM\r\n");
-	#ifdef DAC_DMA
-		#ifdef FMCOMMS5
-			dac_init(ad9361_phy_b, DATA_SEL_DMA, 0);
-		#endif
-			dac_init(ad9361_phy, DATA_SEL_DMA, 1);
-	#else
-		#ifdef FMCOMMS5
-			dac_init(ad9361_phy_b, DATA_SEL_DDS, 0);
-		#endif
-			dac_init(ad9361_phy, DATA_SEL_DDS, 1);
-		#endif
-	#endif
-#endif
-
-#ifdef FMCOMMS5
-	ad9361_do_mcs(ad9361_phy, ad9361_phy_b);
-#endif
-
-#ifndef AXI_ADC_NOT_PRESENT
-#if defined XILINX_PLATFORM && defined CAPTURE_SCRIPT
-    // NOTE: To prevent unwanted data loss, it's recommended to invalidate
-    // cache after each adc_capture() call, keeping in mind that the
-    // size of the capture and the start address must be alinged to the size
-    // of the cache line.
-	mdelay(1000);
-    adc_capture(16384, ADC_DDR_BASEADDR);
-    Xil_DCacheInvalidateRange(ADC_DDR_BASEADDR, 16384);
-#endif
-#endif
 
 #ifdef CONSOLE_COMMANDS
 	get_help(NULL, 0);

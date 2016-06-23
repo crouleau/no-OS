@@ -61,6 +61,6 @@
 //#define PICOZED_SDR
 //#define PICOZED_SDR_CMOS
 //#define CAPTURE_SCRIPT
-//#define AXI_ADC_NOT_PRESENT
+#define AXI_ADC_NOT_PRESENT
 
 #endif

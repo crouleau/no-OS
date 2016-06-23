@@ -50,6 +50,7 @@
 #include "platform.h"
 #include "util.h"
 #include "config.h"
+#include "file_io.h"
 
 /* Used for static code size optimization: please see config.h */
 const bool has_split_gt = HAVE_SPLIT_GAIN_TABLE;
@@ -565,8 +566,7 @@ const char *ad9361_ensm_states[] = {
  * @param num The number of bytes to read.
  * @return 0 in case of success, negative error code otherwise.
  */
-int32_t ad9361_spi_readm(struct spi_device *spi, uint32_t reg,
-	uint8_t *rbuf, uint32_t num)
+int32_t ad9361_spi_readm(struct spi_device *spi, uint32_t reg, uint8_t *rbuf, uint32_t num)
 {
 	uint8_t buf[2];
 	int32_t ret;
@@ -622,8 +622,7 @@ int32_t ad9361_spi_read(struct spi_device *spi, uint32_t reg)
  * @param offset The mask offset.
  * @return The bits value or negative error code in case of failure.
  */
-static int32_t __ad9361_spi_readf(struct spi_device *spi, uint32_t reg,
-	uint32_t mask, uint32_t offset)
+static int32_t __ad9361_spi_readf(struct spi_device *spi, uint32_t reg, uint32_t mask, uint32_t offset)
 {
 	uint8_t buf;
 	int32_t ret;
@@ -911,180 +910,7 @@ static int32_t ad9361_int_loopback_fix_ch_cross(struct ad9361_rf_phy *phy, bool 
 	return 0;
 }
 
-/**
- * BIST loopback mode.
- * @param phy The AD9361 state structure.
- * @param mode BIST loopback mode.
- * @return 0 in case of success, negative error code otherwise.
- */
-int32_t ad9361_bist_loopback(struct ad9361_rf_phy *phy, int32_t mode)
-{
-	uint32_t sp_hd, reg;
 
-	dev_dbg(&phy->spi->dev, "%s: mode %"PRId32, __func__, mode);
-
-	reg = ad9361_spi_read(phy->spi, REG_OBSERVE_CONFIG);
-
-	phy->bist_loopback_mode = mode;
-
-	switch (mode) {
-	case 0:
-		ad9361_hdl_loopback(phy, false);
-		ad9361_int_loopback_fix_ch_cross(phy, false);
-		reg &= ~(DATA_PORT_SP_HD_LOOP_TEST_OE |
-			DATA_PORT_LOOP_TEST_ENABLE);
-		return ad9361_spi_write(phy->spi, REG_OBSERVE_CONFIG, reg);
-	case 1:
-		/* loopback (AD9361 internal) TX->RX */
-		ad9361_hdl_loopback(phy, false);
-		ad9361_int_loopback_fix_ch_cross(phy, true);
-		sp_hd = ad9361_spi_read(phy->spi, REG_PARALLEL_PORT_CONF_3);
-		if ((sp_hd & SINGLE_PORT_MODE) && (sp_hd & HALF_DUPLEX_MODE))
-			reg |= DATA_PORT_SP_HD_LOOP_TEST_OE;
-		else
-			reg &= ~DATA_PORT_SP_HD_LOOP_TEST_OE;
-
-		reg |= DATA_PORT_LOOP_TEST_ENABLE;
-
-		return ad9361_spi_write(phy->spi, REG_OBSERVE_CONFIG, reg);
-	case 2:
-		/* loopback (FPGA internal) RX->TX */
-		ad9361_hdl_loopback(phy, true);
-		ad9361_int_loopback_fix_ch_cross(phy, false);
-		reg &= ~(DATA_PORT_SP_HD_LOOP_TEST_OE |
-			DATA_PORT_LOOP_TEST_ENABLE);
-		return ad9361_spi_write(phy->spi, REG_OBSERVE_CONFIG, reg);
-	default:
-		return -EINVAL;
-	}
-}
-
-/**
- * Get BIST loopback mode.
- * @param phy The AD9361 state structure.
- * @param mode BIST loopback mode.
- * @return 0 in case of success, negative error code otherwise.
- */
-void ad9361_get_bist_loopback(struct ad9361_rf_phy *phy, int32_t *mode)
-{
-	*mode = phy->bist_loopback_mode;
-}
-
-/**
- * BIST mode.
- * @param phy The AD9361 state structure.
- * @param mode Bist mode.
- * @return 0 in case of success, negative error code otherwise.
- */
-int32_t ad9361_bist_prbs(struct ad9361_rf_phy *phy, enum ad9361_bist_mode mode)
-{
-	uint32_t reg = 0;
-
-	dev_dbg(&phy->spi->dev, "%s: mode %d", __func__, mode);
-
-	phy->bist_prbs_mode = mode;
-
-	switch (mode) {
-	case BIST_DISABLE:
-		reg = 0;
-		break;
-	case BIST_INJ_TX:
-		reg = BIST_CTRL_POINT(0) | BIST_ENABLE;
-		break;
-	case BIST_INJ_RX:
-		reg = BIST_CTRL_POINT(2) | BIST_ENABLE;
-		break;
-	};
-
-	return ad9361_spi_write(phy->spi, REG_BIST_CONFIG, reg);
-}
-
-/**
- * Get BIST mode settings.
- * @param phy The AD9361 state structure.
- * @param mode Bist mode.
- * @return 0 in case of success, negative error code otherwise.
- */
-void ad9361_get_bist_prbs(struct ad9361_rf_phy *phy, enum ad9361_bist_mode *mode)
-{
-	*mode = phy->bist_prbs_mode;
-}
-
-/**
- * BIST tone.
- * @param phy The AD9361 state structure.
- * @param mode Bist tone mode.
- * @param freq_Hz Bist tone frequency.
- * @param level_dB Bist tone level.
- * @param mask Bist reg mask.
- * @return 0 in case of success, negative error code otherwise.
- */
-int32_t ad9361_bist_tone(struct ad9361_rf_phy *phy,
-						 enum ad9361_bist_mode mode, uint32_t freq_Hz,
-						 uint32_t level_dB, uint32_t mask)
-{
-	uint32_t clk = 0;
-	uint32_t reg = 0, reg1, reg_mask;
-
-	dev_dbg(&phy->spi->dev, "%s: mode %d", __func__, mode);
-
-	phy->bist_tone_mode = mode;
-	phy->bist_tone_freq_Hz = freq_Hz;
-	phy->bist_tone_level_dB = level_dB;
-	phy->bist_tone_mask = mask;
-
-	switch (mode) {
-	case BIST_DISABLE:
-		reg = 0;
-		break;
-	case BIST_INJ_TX:
-		clk = clk_get_rate(phy, phy->ref_clk_scale[TX_SAMPL_CLK]);
-		reg = BIST_CTRL_POINT(0) | BIST_ENABLE;
-		break;
-	case BIST_INJ_RX:
-		clk = clk_get_rate(phy, phy->ref_clk_scale[RX_SAMPL_CLK]);
-		reg = BIST_CTRL_POINT(2) | BIST_ENABLE;
-		break;
-	};
-
-	reg |= TONE_PRBS;
-	reg |= TONE_LEVEL(level_dB / 6);
-
-	if (freq_Hz < 4) {
-		reg |= TONE_FREQ(freq_Hz);
-	}
-	else {
-		if (clk)
-			reg |= TONE_FREQ(DIV_ROUND_CLOSEST(freq_Hz * 32, clk) - 1);
-	}
-
-	reg_mask = BIST_MASK_CHANNEL_1_I_DATA | BIST_MASK_CHANNEL_1_Q_DATA |
-		BIST_MASK_CHANNEL_2_I_DATA | BIST_MASK_CHANNEL_2_Q_DATA;
-
-	reg1 = ((mask << 2) & reg_mask);
-	ad9361_spi_write(phy->spi, REG_BIST_AND_DATA_PORT_TEST_CONFIG, reg1);
-
-	return ad9361_spi_write(phy->spi, REG_BIST_CONFIG, reg);
-}
-
-/**
- * Get BIST tone settings.
- * @param phy The AD9361 state structure.
- * @param mode Bist tone mode.
- * @param freq_Hz Bist tone frequency.
- * @param level_dB Bist tone level.
- * @param mask Bist reg mask.
- * @return 0 in case of success, negative error code otherwise.
- */
-void ad9361_get_bist_tone(struct ad9361_rf_phy *phy,
-						 enum ad9361_bist_mode *mode, uint32_t *freq_Hz,
-						 uint32_t *level_dB, uint32_t *mask)
-{
-	*mode = phy->bist_tone_mode;
-	*freq_Hz = phy->bist_tone_freq_Hz;
-	*level_dB = phy->bist_tone_level_dB;
-	*mask = phy->bist_tone_mask;
-}
 
 /**
  * Check the calibration done bit.
@@ -1096,9 +922,22 @@ void ad9361_get_bist_tone(struct ad9361_rf_phy *phy,
  */
 static int32_t ad9361_check_cal_done(struct ad9361_rf_phy *phy, uint32_t reg, uint32_t mask, bool done_state) //TODO: Figure out how to wait for this SPI msg in VHDL
 {
-	uint32_t timeout = 5000; /* RFDC_CAL can take long */
-	uint32_t state;
+    uint8_t i;
+    uint8_t n;
+    char str_buf[100];
 
+    //CSV:
+    /*
+        header,         description,    register,       data
+        check_cal_done, done_state,            register,       mask
+    */
+
+    sprintf(str_buf,"check_cal_done,%d,%08x,%08x\n",done_state,reg,mask);
+    log_string(str_buf);
+
+    /*
+    uint32_t timeout = 5000; // RFDC_CAL can take long
+	uint32_t state;
 	do {
 		state = ad9361_spi_readf(phy->spi, reg, mask);
 		if (state == done_state)
@@ -1115,7 +954,7 @@ static int32_t ad9361_check_cal_done(struct ad9361_rf_phy *phy, uint32_t reg, ui
 
 	dev_err(&phy->spi->dev, "Calibration TIMEOUT (0x%"PRIX32", 0x%"PRIX32")", reg, mask);
 
-	return -ETIMEDOUT;
+	return -ETIMEDOUT;*/
 }
 
 /**
@@ -1404,9 +1243,7 @@ static uint32_t ad9361_rfvco_tableindex(uint32_t freq)
  * @param ref_clk The reference clock frequency [Hz].
  * @return 0 in case of success
  */
-static int32_t ad9361_rfpll_vco_init(struct ad9361_rf_phy *phy,
-	bool tx, uint64_t vco_freq,
-	uint32_t ref_clk)
+static int32_t ad9361_rfpll_vco_init(struct ad9361_rf_phy *phy, bool tx, uint64_t vco_freq, uint32_t ref_clk)
 {
 	struct spi_device *spi = phy->spi;
 	const struct SynthLUT(*tab);
@@ -1470,9 +1307,11 @@ static int32_t ad9361_rfpll_vco_init(struct ad9361_rf_phy *phy,
 	ad9361_spi_write(spi, REG_RX_LOOP_FILTER_1 + offs,
 		LOOP_FILTER_C2(tab[i].LF_C2) |
 		LOOP_FILTER_C1(tab[i].LF_C1));
+
 	ad9361_spi_write(spi, REG_RX_LOOP_FILTER_2 + offs,
 		LOOP_FILTER_R1(tab[i].LF_R1) |
 		LOOP_FILTER_C3(tab[i].LF_C3));
+
 	ad9361_spi_write(spi, REG_RX_LOOP_FILTER_3 + offs,
 		LOOP_FILTER_R3(tab[i].LF_R3));
 
@@ -2616,8 +2455,7 @@ static int32_t ad9361_txrx_synth_cp_calib(struct ad9361_rf_phy *phy,
 
 	ad9361_spi_write(phy->spi, REG_RX_CP_CONFIG + offs, CP_CAL_ENABLE);
 
-	return ad9361_check_cal_done(phy, REG_RX_CAL_STATUS + offs,
-		CP_CAL_VALID, 1);
+	return ad9361_check_cal_done(phy, REG_RX_CAL_STATUS + offs, CP_CAL_VALID, 1);
 }
 
 /**
@@ -5356,9 +5194,7 @@ static int32_t ad9361_verify_fir_filter_coef(struct ad9361_rf_phy *phy,
  * @param coef Pointer to filter coefficients.
  * @return 0 in case of success, negative error code otherwise.
  */
-int32_t ad9361_load_fir_filter_coef(struct ad9361_rf_phy *phy,
-	enum fir_dest dest, int32_t gain_dB,
-	uint32_t ntaps, int16_t *coef)
+int32_t ad9361_load_fir_filter_coef(struct ad9361_rf_phy *phy, enum fir_dest dest, int32_t gain_dB, uint32_t ntaps, int16_t *coef)
 {
 	struct spi_device *spi = phy->spi;
 	uint32_t val, offs = 0, fir_conf = 0, fir_enable = 0;
@@ -6104,8 +5940,7 @@ uint32_t ad9361_bbpll_recalc_rate(struct refclk_scale *clk_priv,
 	uint32_t fract, integer;
 	uint8_t buf[4];
 
-	ad9361_spi_readm(clk_priv->spi, REG_INTEGER_BB_FREQ_WORD, &buf[0],
-		REG_INTEGER_BB_FREQ_WORD - REG_FRACT_BB_FREQ_WORD_1 + 1);
+	ad9361_spi_readm(clk_priv->spi, REG_INTEGER_BB_FREQ_WORD, &buf[0], REG_INTEGER_BB_FREQ_WORD - REG_FRACT_BB_FREQ_WORD_1 + 1);
 
 	fract = (buf[3] << 16) | (buf[2] << 8) | buf[1];
 	integer = buf[0];
@@ -6221,8 +6056,7 @@ int32_t ad9361_bbpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 	ad9361_spi_write(spi, REG_VCO_PROGRAM_2, 0x01); /* Increase BBPLL KV and phase margin */
 	ad9361_spi_write(spi, REG_VCO_PROGRAM_2, 0x05); /* Increase BBPLL KV and phase margin */
 
-	return ad9361_check_cal_done(clk_priv->phy, REG_CH_1_OVERFLOW,
-		BBPLL_LOCK, 1);
+	return ad9361_check_cal_done(clk_priv->phy, REG_CH_1_OVERFLOW, BBPLL_LOCK, 1);
 }
 
 /*
@@ -6260,7 +6094,7 @@ static uint64_t ad9361_calc_rfpll_int_freq(uint64_t parent_rate,
  * @param vco_freq The VCO frequency.
  * @return The RFPLL frequency.
  */
-static int32_t ad9361_calc_rfpll_int_divder(uint64_t freq,
+static int32_t ad9361_calc_rfpll_int_divider(uint64_t freq,
 	uint64_t parent_rate, uint32_t *integer,
 	uint32_t *fract, int32_t *vco_div, uint64_t *vco_freq)
 {
@@ -6378,8 +6212,7 @@ int32_t ad9361_rfpll_int_round_rate(struct refclk_scale *clk_priv, uint32_t rate
  * @param parent_rate The parent clock rate.
  * @return 0 in case of success, negative error code otherwise.
  */
-int32_t ad9361_rfpll_int_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
-	uint32_t parent_rate)
+int32_t ad9361_rfpll_int_set_rate(struct refclk_scale *clk_priv, uint32_t rate, uint32_t parent_rate)
 {
 	struct ad9361_rf_phy *phy = clk_priv->phy;
 	uint64_t vco = 0;
@@ -6393,8 +6226,7 @@ int32_t ad9361_rfpll_int_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 
 	ad9361_fastlock_prepare(phy, clk_priv->source == TX_RFPLL_INT, 0, false);
 
-	ret = ad9361_calc_rfpll_int_divder(ad9361_from_clk(rate), parent_rate,
-		&integer, &fract, &vco_div, &vco);
+	ret = ad9361_calc_rfpll_int_divider(ad9361_from_clk(rate), parent_rate, &integer, &fract, &vco_div, &vco);
 	if (ret < 0)
 		return ret;
 
@@ -6425,8 +6257,7 @@ int32_t ad9361_rfpll_int_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 
 	do {
 		fixup_other = 0;
-		ad9361_rfpll_vco_init(phy, div_mask == TX_VCO_DIVIDER(~0),
-				vco, parent_rate);
+		ad9361_rfpll_vco_init(phy, div_mask == TX_VCO_DIVIDER(~0), vco, parent_rate);
 
 		buf[0] = SYNTH_FRACT_WORD(fract >> 16);
 		buf[1] = fract >> 8;
@@ -6468,12 +6299,10 @@ int32_t ad9361_rfpll_int_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 				break;
 			default:
 				return -EINVAL;
-
 			}
 
 			if (phy->current_tx_lo_freq != phy->current_rx_lo_freq) {
-				ad9361_calc_rfpll_int_divder(ad9361_from_clk(_rate),
-					parent_rate, &integer, &fract, &vco_div, &vco);
+				ad9361_calc_rfpll_int_divider(ad9361_from_clk(_rate), parent_rate, &integer, &fract, &vco_div, &vco);
 
 				ad9361_fastlock_prepare(phy, clk_priv->source == RX_RFPLL_INT, 0, false);
 			}
@@ -6623,8 +6452,7 @@ int32_t ad9361_rfpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate)
 			else
 				ad9361_rfpll_dummy_set_rate(phy->ref_clk_scale[RX_RFPLL_DUMMY], rate);
 		} else {
-			ad9361_rfpll_int_set_rate(phy->ref_clk_scale[RX_RFPLL_INT], rate,
-					phy->clks[phy->ref_clk_scale[RX_RFPLL_INT]->parent_source]->rate);
+			ad9361_rfpll_int_set_rate(phy->ref_clk_scale[RX_RFPLL_INT], rate, phy->clks[phy->ref_clk_scale[RX_RFPLL_INT]->parent_source]->rate);
 		}
 		/* Load Gain Table */
 		ret = ad9361_load_gt(phy, ad9361_from_clk(rate), GT_RX1 + GT_RX2);
@@ -6638,8 +6466,7 @@ int32_t ad9361_rfpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate)
 			else
 				ad9361_rfpll_dummy_set_rate(phy->ref_clk_scale[TX_RFPLL_DUMMY], rate);
 		} else {
-			ad9361_rfpll_int_set_rate(phy->ref_clk_scale[TX_RFPLL_INT], rate,
-					phy->clks[phy->ref_clk_scale[TX_RFPLL_INT]->parent_source]->rate);
+			ad9361_rfpll_int_set_rate(phy->ref_clk_scale[TX_RFPLL_INT], rate, phy->clks[phy->ref_clk_scale[TX_RFPLL_INT]->parent_source]->rate);
 		}
 		/* For RX LO we typically have the tracking option enabled
 		* so for now do nothing here.

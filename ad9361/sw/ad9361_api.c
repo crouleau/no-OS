@@ -100,19 +100,6 @@ int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_pa
 	if (!phy->pdata) {
 		return -ENOMEM;
 	}
-#ifndef AXI_ADC_NOT_PRESENT
-	phy->adc_conv = (struct axiadc_converter *)zmalloc(sizeof(*phy->adc_conv));
-	if (!phy->adc_conv) {
-		return -ENOMEM;
-	}
-
-	phy->adc_state = (struct axiadc_state *)zmalloc(sizeof(*phy->adc_state));
-	if (!phy->adc_state) {
-		return -ENOMEM;
-	}
-
-	phy->adc_state->phy = phy;
-#endif
 
 	phy->spi->id_no = init_param->id_no;
 
@@ -376,10 +363,6 @@ int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_pa
 	phy->pdata->port_ctrl.lvds_invert[0] = init_param->lvds_invert1_control;
 	phy->pdata->port_ctrl.lvds_invert[1] = init_param->lvds_invert2_control;
 
-#ifndef AXI_ADC_NOT_PRESENT
-	phy->adc_conv->chip_info = &axiadc_chip_info_tbl[phy->pdata->rx2tx2 ? ID_AD9361 : ID_AD9364];
-#endif
-
 	phy->rx_eq_2tx = false;
 
 	phy->current_table = RXGAIN_TBLS_END;
@@ -422,22 +405,10 @@ int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_pa
 	if (ret < 0)
 		goto out;
 
-#ifndef AXI_ADC_NOT_PRESENT
-	axiadc_init(phy);
-	phy->adc_state->pcore_version = axiadc_read(phy->adc_state, ADI_REG_VERSION);
-#endif
-
 	ad9361_init_gain_tables(phy);
     ret = ad9361_setup(phy);
 	if (ret < 0)
 		goto out;
-
-#ifndef AXI_ADC_NOT_PRESENT
-	/* platform specific wrapper to call ad9361_post_setup() */
-	ret = axiadc_post_setup(phy);
-	if (ret < 0)
-		goto out;
-#endif
 
 	printf("%s : AD9361 Rev %d successfully initialized\n", "ad9361_init", (int)rev);
 
@@ -860,8 +831,7 @@ int32_t ad9361_get_rx_gain_control_mode (struct ad9361_rf_phy *phy,
  *
  * Note: This function will/may affect the data path.
  */
-int32_t ad9361_set_rx_fir_config (struct ad9361_rf_phy *phy,
-								  AD9361_RXFIRConfig fir_cfg)
+int32_t ad9361_set_rx_fir_config (struct ad9361_rf_phy *phy, AD9361_RXFIRConfig fir_cfg)
 {
 	int32_t ret;
 

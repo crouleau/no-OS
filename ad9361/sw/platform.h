@@ -136,8 +136,6 @@ enum adc_data_sel {
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
-void spi_log_close(void);
-void spi_log_open(const char *filename);
 
 int32_t spi_init(uint32_t device_id, uint8_t  clk_pha, uint8_t  clk_pol);
 int32_t spi_read(uint8_t *data, uint8_t bytes_number);
@@ -145,7 +143,7 @@ int32_t spi_read(uint8_t *data, uint8_t bytes_number);
 int spi_write_then_read(struct spi_device *spi, const uint8_t *txbuf, uint8_t n_tx, uint8_t *rxbuf, uint8_t n_rx);
 
 void gpio_init(uint32_t device_id);
-void gpio_direction(uint8_t pin, uint8_t direction);
+void gpio_direction(const char *pin_text, uint8_t pin, uint8_t direction);
 bool gpio_is_valid(int number);
 void gpio_set_value(unsigned gpio, int value);
 void udelay(unsigned long usecs);

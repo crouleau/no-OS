@@ -3450,10 +3450,7 @@ int32_t ad9361_rfpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate);
 int32_t ad9361_clk_mux_set_parent(struct refclk_scale *clk_priv, uint8_t index);
 int32_t ad9361_tracking_control(struct ad9361_rf_phy *phy, bool bbdc_track,
 	bool rfdc_track, bool rxquad_track);
-int32_t ad9361_bist_loopback(struct ad9361_rf_phy *phy, int32_t mode);
-void ad9361_get_bist_loopback(struct ad9361_rf_phy *phy, int32_t *mode);
-int32_t ad9361_bist_prbs(struct ad9361_rf_phy *phy, enum ad9361_bist_mode mode);
-void ad9361_get_bist_prbs(struct ad9361_rf_phy *phy, enum ad9361_bist_mode *mode);
+
 int32_t ad9361_bist_tone(struct ad9361_rf_phy *phy,
 						 enum ad9361_bist_mode mode, uint32_t freq_Hz,
 						 uint32_t level_dB, uint32_t mask);
