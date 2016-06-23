@@ -380,6 +380,8 @@ int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_pa
 	phy->bist_tone_level_dB = 0;
 	phy->bist_tone_mask = 0;
 
+    log_string("Done loading data into structs,,,\n");
+
 	ad9361_reset(phy);
 
 	ret = ad9361_spi_read(phy->spi, REG_PRODUCT_ID);

@@ -842,22 +842,6 @@ int32_t ad9361_reset(struct ad9361_rf_phy *phy) //TODO: Figure out what line to 
 		dev_dbg(&phy->spi->dev, "%s: by GPIO", __func__);
 		return 0;
 	}
-
-    //Work-around: (TODO)
-    dev_err(&phy->spi->dev, "%s: faked being reset by GPIO", __func__);
-    return 0;
-
-	/* SPI Soft Reset was removed from the register map, since it doesn't
-	 * work reliably. Without a prober HW reset randomness may happen.
-	 * Please specify a RESET GPIO.
-	 */
-
-	ad9361_spi_write(phy->spi, REG_SPI_CONF, SOFT_RESET | _SOFT_RESET);
-	ad9361_spi_write(phy->spi, REG_SPI_CONF, 0x0);
-	dev_err(&phy->spi->dev,
-		 "%s: by SPI, this may cause unpredicted behavior!", __func__);
-
-	return -ENODEV;
 }
 
 /**

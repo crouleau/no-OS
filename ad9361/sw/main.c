@@ -399,7 +399,7 @@ int main(void)
 	spi_init(SPI_DEVICE_ID, 1, 0);
 	printf("\r\nSPI INIT done\r\n");
 
-
+    //Here is where it starts getting complex
 	ad9361_init(&ad9361_phy, &default_init_param);
 	ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
 	ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
