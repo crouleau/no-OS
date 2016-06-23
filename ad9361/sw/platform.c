@@ -44,6 +44,25 @@
 #include "util.h"
 #include "platform.h"
 
+FILE *spi_file;
+
+/***************************************************************************//**
+ * @brief spi_log_open -- opens a text file for logging SPI read/write
+*******************************************************************************/
+void spi_log_open(const char *filename)
+{
+    spi_file = fopen(filename, "w");
+}
+
+/***************************************************************************//**
+ * @brief spi_log_close -- closes the file handle for logging SPI read/write
+*******************************************************************************/
+void spi_log_close(void)
+{
+    fclose(spi_file);
+}
+
+
 /***************************************************************************//**
  * @brief usleep
 *******************************************************************************/
@@ -65,8 +84,7 @@ int32_t spi_init(uint32_t device_id,
 /***************************************************************************//**
  * @brief spi_read
 *******************************************************************************/
-int32_t spi_read(uint8_t *data,
-				 uint8_t bytes_number)
+int32_t spi_read(uint8_t *data, uint8_t bytes_number)
 {
 	return 0;
 }
@@ -74,11 +92,31 @@ int32_t spi_read(uint8_t *data,
 /***************************************************************************//**
  * @brief spi_write_then_read
 *******************************************************************************/
-int spi_write_then_read(struct spi_device *spi,
-		const unsigned char *txbuf, unsigned n_tx,
-		unsigned char *rxbuf, unsigned n_rx)
+int spi_write_then_read(struct spi_device *spi, const uint8_t *txbuf, uint8_t n_tx, uint8_t *rxbuf, uint8_t n_rx)
 {
-	return 0;
+    uint8_t i;
+    char str_buf[200];
+
+    sprintf(str_buf,"x");
+    for(i=0; i<n_tx; i++)
+    {
+        sprintf(&str_buf[i*2+1], "%02x", txbuf[i]);
+    }
+    sprintf(&str_buf[n_tx*2+1],", %d\n",n_rx);
+
+    fputs(str_buf, spi_file);
+
+    /*dev_spi(&spi->dev,"tx %d: ",n_tx);
+    for(i=0; i<n_tx; i++)
+    {
+        dev_spi(&spi->dev,"%02x",txbuf[i]);
+    }
+    if(n_rx>0){
+        dev_spi(&spi->dev," -- rx %d bytes ",n_rx);
+    }
+    dev_spi(&spi->dev,"\r\n");*/
+
+	return SUCCESS;
 }
 
 /***************************************************************************//**

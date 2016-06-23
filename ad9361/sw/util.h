@@ -68,6 +68,12 @@
 #define CLK_IGNORE_UNUSED						BIT(3)
 #define CLK_GET_RATE_NOCACHE					BIT(6)
 
+#if defined(OUTPUT_SPI_BYTES)
+    #define dev_spi(dev, format, ...)		({printf(format, ## __VA_ARGS__); })
+#else
+    #define dev_spi(dev, format, ...)	({ if (0) printf(format, ## __VA_ARGS__); })
+#endif
+
 #if defined(HAVE_VERBOSE_MESSAGES)
     #define dev_err(dev, format, ...)		({printf(format, ## __VA_ARGS__);printf("\n"); })
     #define dev_warn(dev, format, ...)		({printf(format, ## __VA_ARGS__);printf("\n"); })

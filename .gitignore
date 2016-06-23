@@ -2,6 +2,8 @@
 *.o
 *.win
 *.layout
+*.xlsx
+*.csv
 
 #################
 ## Eclipse

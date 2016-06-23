@@ -369,6 +369,8 @@ struct ad9361_rf_phy *ad9361_phy_b;
 int main(void)
 {
 	printf("Main loop\r\n");
+    spi_log_open("logs/spi_msgs.log");
+
 #ifdef XILINX_PLATFORM
 	Xil_ICacheEnable();
 	Xil_DCacheEnable();
@@ -505,6 +507,7 @@ int main(void)
 	}
 #endif
 
+    spi_log_close();
 	printf("Done.\r\n");
 
 #ifdef XILINX_PLATFORM

@@ -41,6 +41,7 @@
 
 #define HAVE_VERBOSE_MESSAGES /* Recommended during development prints errors and warnings */
 //#define HAVE_DEBUG_MESSAGES /* For Debug purposes only */
+//#define OUTPUT_SPI_BYTES //Define in order to print out every byte that is sent to the SPI port
 
 /*
  * In case memory footprint is a concern these options allow
