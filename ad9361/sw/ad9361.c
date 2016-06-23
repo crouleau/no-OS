@@ -835,9 +835,9 @@ int32_t ad9361_1rx1tx_channel_map(struct ad9361_rf_phy *phy, bool tx, int32_t ch
 int32_t ad9361_reset(struct ad9361_rf_phy *phy) //TODO: Figure out what line to use for resetting the ad9361!
 {
 	if (gpio_is_valid(phy->pdata->gpio_resetb)) {
-		gpio_set_value(phy->pdata->gpio_resetb, 0);
+		gpio_set_value("gpio_resetb",phy->pdata->gpio_resetb, 0);
 		mdelay(1);
-		gpio_set_value(phy->pdata->gpio_resetb, 1);
+		gpio_set_value("gpio_resetb",phy->pdata->gpio_resetb, 1);
 		mdelay(1);
 		dev_dbg(&phy->spi->dev, "%s: by GPIO", __func__);
 		return 0;
@@ -4097,9 +4097,9 @@ int32_t ad9361_set_trx_clock_chain(struct ad9361_rf_phy *phy,
 	 * If it is disabled we restore the values from the initial calibration.
 	 */
 
-	if (!phy->pdata->dig_interface_tune_fir_disable &&
+	/*if (!phy->pdata->dig_interface_tune_fir_disable &&
 		!(phy->bypass_tx_fir && phy->bypass_rx_fir))
-		ret = ad9361_dig_tune(phy, 0, SKIP_STORE_RESULT);
+		ret = ad9361_dig_tune(phy, 0, SKIP_STORE_RESULT);*/
 
 	return ad9361_bb_clk_change_handler(phy);
 }
@@ -4660,8 +4660,8 @@ int32_t ad9361_mcs(struct ad9361_rf_phy *phy, int32_t step)
 		 * HDL ensures Multi-chip Synchronization SYNC_IN Pulse Timing
 		 * relative to rising and falling edge of REF_CLK
 		 */
-		gpio_set_value(phy->pdata->gpio_sync, 1);
-		gpio_set_value(phy->pdata->gpio_sync, 0);
+		gpio_set_value("gpio_sync",phy->pdata->gpio_sync, 1);
+		gpio_set_value("gpio_sync",phy->pdata->gpio_sync, 0);
 		break;
 	case 3:
 		ad9361_spi_writef(phy->spi, REG_MULTICHIP_SYNC_AND_TX_MON_CTRL,
@@ -4670,8 +4670,8 @@ int32_t ad9361_mcs(struct ad9361_rf_phy *phy, int32_t step)
 	case 4:
 		if(!gpio_is_valid(phy->pdata->gpio_sync))
 			break;
-		gpio_set_value(phy->pdata->gpio_sync, 1);
-		gpio_set_value(phy->pdata->gpio_sync, 0);
+		gpio_set_value("gpio_sync",phy->pdata->gpio_sync, 1);
+		gpio_set_value("gpio_sync",phy->pdata->gpio_sync, 0);
 		break;
 	case 5:
 		ad9361_spi_writef(phy->spi, REG_MULTICHIP_SYNC_AND_TX_MON_CTRL,
@@ -5557,9 +5557,9 @@ int32_t ad9361_validate_enable_fir(struct ad9361_rf_phy *phy)
 		return ret;
 
 	/* See also: ad9361_set_trx_clock_chain() */
-	if (!phy->pdata->dig_interface_tune_fir_disable &&
+	/*if (!phy->pdata->dig_interface_tune_fir_disable &&
 		phy->bypass_tx_fir && phy->bypass_rx_fir)
-		ad9361_dig_tune(phy, 0, RESTORE_DEFAULT);
+		ad9361_dig_tune(phy, 0, RESTORE_DEFAULT);*/
 
 	return ad9361_update_rf_bandwidth(phy,
 		valid ? phy->filt_rx_bw_Hz : phy->current_rx_bw_Hz,

@@ -167,24 +167,31 @@ void gpio_direction(const char *pin_text, uint8_t pin, uint8_t direction)
 *******************************************************************************/
 bool gpio_is_valid(int number)
 {
-    log_string("GPIO_IS_VALID_NOT_PROGRAMMED,,,\n");
-	return 0;
+	return 1;
 }
 
-/***************************************************************************//**
- * @brief gpio_data
-*******************************************************************************/
-void gpio_data(uint8_t pin, uint8_t data)
-{
-    log_string("GPIO_DATA_NOT_PROGRAMMED,,,\n");
-}
 
 /***************************************************************************//**
  * @brief gpio_set_value
 *******************************************************************************/
-void gpio_set_value(unsigned gpio, int value)
+void gpio_set_value(const char *pin_text, unsigned gpio, int value)
 {
-    log_string("GPIO_SET_VALUE_NOT_PROGRAMMED,,,\n");
+    char str_buf[100];
+    uint8_t i;
+    uint8_t n;
+
+    //CSV:
+    /*
+        header,     description,    register,   data
+        gpio_set,   pin_text_descr  gpio,       value
+    */
+    sprintf(str_buf,"gpio_set,");
+    n = strlen("gpio_set,");
+    sprintf(&str_buf[n],pin_text);
+    n +=  strlen(pin_text);
+    sprintf(&str_buf[n],",%d,%d\n",gpio,value);
+
+    log_string(str_buf);
 }
 
 /***************************************************************************//**
@@ -212,56 +219,4 @@ unsigned long msleep_interruptible(unsigned int msecs)
 {
     log_string("msleep_interrupible_NOT_PROGRAMMED,,,\n");
 	return 0;
-}
-
-/***************************************************************************//**
- * @brief axiadc_init
-*******************************************************************************/
-void axiadc_init(struct ad9361_rf_phy *phy)
-{
-
-}
-
-/***************************************************************************//**
- * @brief axiadc_post_setup
-*******************************************************************************/
-int axiadc_post_setup(struct ad9361_rf_phy *phy)
-{
-    log_string("NEED TO DELETE axiadc_post_setup!,,,\n");
-	return 0;
-}
-
-/***************************************************************************//**
- * @brief axiadc_read
-*******************************************************************************/
-unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg)
-{
-    log_string("NEED TO DELETE axiadc_read!,,,\n");
-	return 0;
-}
-
-/***************************************************************************//**
- * @brief axiadc_write
-*******************************************************************************/
-void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val)
-{
-    log_string("NEED TO DELETE axiadc_write!,,,\n");
-}
-
-/***************************************************************************//**
-* @brief axiadc_set_pnsel
-*******************************************************************************/
-int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel)
-{
-    log_string("NEED TO DELETE axiadc_set_pnsel!,,,\n");
-	return 0;
-}
-
-/***************************************************************************//**
- * @brief axiadc_idelay_set
-*******************************************************************************/
-void axiadc_idelay_set(struct axiadc_state *st,
-				unsigned lane, unsigned val)
-{
-    log_string("NEED TO DELETE axiadc_idelay_set!,,,\n");
 }

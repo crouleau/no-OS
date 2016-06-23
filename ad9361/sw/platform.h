@@ -145,7 +145,7 @@ int spi_write_then_read(struct spi_device *spi, const uint8_t *txbuf, uint8_t n_
 void gpio_init(uint32_t device_id);
 void gpio_direction(const char *pin_text, uint8_t pin, uint8_t direction);
 bool gpio_is_valid(int number);
-void gpio_set_value(unsigned gpio, int value);
+void gpio_set_value(const char *pin_text, unsigned gpio, int value);
 void udelay(unsigned long usecs);
 void mdelay(unsigned long msecs);
 unsigned long msleep_interruptible(unsigned int msecs);
