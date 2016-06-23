@@ -4743,9 +4743,7 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 	if (pd->fdd) {
 		pd->tdd_skip_vco_cal = false;
 		if (pd->ensm_pin_ctrl && pd->fdd_independent_mode) {
-			dev_warn(dev,
-				 "%s: Either set ENSM PINCTRL or FDD Independent Mode",
-				__func__);
+			dev_warn(dev,"%s: Either set ENSM PINCTRL or FDD Independent Mode",__func__);
 			pd->ensm_pin_ctrl = false;
 		}
 	}
@@ -4775,6 +4773,8 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 	ad9361_spi_write(spi, REG_CLOCK_ENABLE,
 		DIGITAL_POWER_UP | CLOCK_ENABLE_DFLT | BBPLL_ENABLE |
 		(pd->use_extclk ? XO_BYPASS : 0)); /* Enable Clocks */
+
+    log_string("XXXXXXXXXXXXXXXXXXXXXXXX marks the spot\n");
 
 	ret = clk_set_rate(phy, phy->ref_clk_scale[BB_REFCLK], ref_freq);
 	if (ret < 0) {
@@ -5019,7 +5019,6 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 	phy->cal_threshold_freq = 100000000ULL; /* 100 MHz */
 
 	return 0;
-
 }
 
 /**

@@ -47,24 +47,6 @@
 #include "config.h"
 #include <string.h>
 
-#ifndef AXI_ADC_NOT_PRESENT
-/******************************************************************************/
-/************************ Constants Definitions *******************************/
-/******************************************************************************/
-static struct axiadc_chip_info axiadc_chip_info_tbl[] =
-{
-	{
-		"AD9361",
-		4,
-		61440000UL,
-	},
-	{
-		"AD9364",
-		2,
-		122880000UL,
-	},
-};
-#endif
 
 /**
  * Initialize the AD9361 part.
@@ -80,6 +62,8 @@ int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_pa
 	int32_t ret = 0;
 	int32_t rev = 0;
 	int32_t i   = 0;
+
+    log_string("***** NOTE: Ignore below 4 msec delays (they're just for a zmalloc)\n");
 
 	phy = (struct ad9361_rf_phy *)zmalloc(sizeof(*phy));
 	if (!phy) {
@@ -380,10 +364,11 @@ int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_pa
 	phy->bist_tone_level_dB = 0;
 	phy->bist_tone_mask = 0;
 
-    log_string("Done loading data into structs,,,\n");
-
+    log_string("***** Starting ad9361 reset,,,\n");
 	ad9361_reset(phy);
+    log_string("***** Done with ad9361 reset,,,\n");
 
+    log_string("***** ACTION,ensure next spi read is the ad9361 product ID. Use mask 0xF8 and look for 0x08,,\n");
 	ret = ad9361_spi_read(phy->spi, REG_PRODUCT_ID);
     ret = PRODUCT_ID_9361; //SPI READ
 	if ((ret & PRODUCT_ID_MASK) != PRODUCT_ID_9361) {
@@ -403,12 +388,18 @@ int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_pa
 	phy->ad9361_rfpll_ext_round_rate = init_param->ad9361_rfpll_ext_round_rate;
 	phy->ad9361_rfpll_ext_set_rate = init_param->ad9361_rfpll_ext_set_rate;
 
+    log_string("***** Starting to register clocks,,,\n");
+    log_string("***** ACTION,ensure data from each spi read goes to the right place or isn't used,,\n");
 	ret = register_clocks(phy);
+    log_string("***** Finished registering clocks,,,\n");
 	if (ret < 0)
 		goto out;
 
 	ad9361_init_gain_tables(phy);
+
+    log_string("***** Starting ad9361_setup,,,\n");
     ret = ad9361_setup(phy);
+    log_string("***** Done with ad9361_setup,,,\n");
 	if (ret < 0)
 		goto out;
 
@@ -420,10 +411,6 @@ int32_t ad9361_init(struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_pa
 
 out:
 	free(phy->spi);
-#ifndef AXI_ADC_NOT_PRESENT
-	free(phy->adc_conv);
-	free(phy->adc_state);
-#endif
 	free(phy->clk_refin);
 	free(phy->pdata);
 	free(phy);
@@ -1713,9 +1700,6 @@ int32_t ad9361_set_no_ch_mode(struct ad9361_rf_phy *phy, uint8_t no_ch_mode)
 		return -EINVAL;
 	}
 
-#ifndef AXI_ADC_NOT_PRESENT
-	phy->adc_conv->chip_info = &axiadc_chip_info_tbl[phy->pdata->rx2tx2 ? ID_AD9361 : ID_AD9364];
-#endif
 	ad9361_reset(phy);
 	ad9361_spi_write(phy->spi, REG_SPI_CONF, SOFT_RESET | _SOFT_RESET);
 	ad9361_spi_write(phy->spi, REG_SPI_CONF, 0x0);
@@ -1742,14 +1726,7 @@ int32_t ad9361_set_no_ch_mode(struct ad9361_rf_phy *phy, uint8_t no_ch_mode)
 	phy->clks[RX_RFPLL]->rate = ad9361_rfpll_recalc_rate(phy->ref_clk_scale[RX_RFPLL]);
 	phy->clks[TX_RFPLL]->rate = ad9361_rfpll_recalc_rate(phy->ref_clk_scale[TX_RFPLL]);
 
-#ifndef AXI_ADC_NOT_PRESENT
-	axiadc_init(phy);
-#endif
 	ad9361_setup(phy);
-#ifndef AXI_ADC_NOT_PRESENT
-	/* platform specific wrapper to call ad9361_post_setup() */
-	axiadc_post_setup(phy);
-#endif
 
 	return 0;
 }
