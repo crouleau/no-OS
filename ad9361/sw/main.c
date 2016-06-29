@@ -45,8 +45,8 @@
 #include "parameters.h"
 #include "platform.h"
 #ifdef CONSOLE_COMMANDS
-#include "command.h"
-#include "console.h"
+#include "console_commands\command.h"
+#include "console_commands\console.h"
 #endif
 #ifdef XILINX_PLATFORM
 #include <xil_cache.h>
