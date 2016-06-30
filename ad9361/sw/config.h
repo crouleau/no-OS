@@ -50,16 +50,18 @@
 #define HAVE_SPLIT_GAIN_TABLE	1 /* only set to 0 in case split_gain_table_mode_enable = 0*/
 #define HAVE_TDD_SYNTH_TABLE	1 /* only set to 0 in case split_gain_table_mode_enable = 0*/
 
-#define AD9361_DEVICE			1 /* set it 1 if AD9361 device is used, 0 otherwise */
-#define AD9364_DEVICE			0 /* set it 1 if AD9364 device is used, 0 otherwise */
+#define AD9361_DEVICE			0 /* set it 1 if AD9361 device is used, 0 otherwise */
+#define AD9364_DEVICE			1 /* set it 1 if AD9364 device is used, 0 otherwise */
 
-//#define CONSOLE_COMMANDS
-//#define XILINX_PLATFORM
+#define CONSOLE_COMMANDS
+#define XILINX_PLATFORM
 //#define ALTERA_PLATFORM
 //#define FMCOMMS5
 //#define PICOZED_SDR
 //#define PICOZED_SDR_CMOS
 //#define CAPTURE_SCRIPT
 //#define AXI_ADC_NOT_PRESENT
+
+#define DAC_DMA //Define this to use the sine_lut, possibly modifies other stuff too
 
 #endif
