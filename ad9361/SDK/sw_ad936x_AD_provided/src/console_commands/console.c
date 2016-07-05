@@ -71,7 +71,7 @@ char uart_init(unsigned long baudRate)
  * @return None.
 *******************************************************************************/
 void uart_write_char(char data)
-{
+{    
 	putchar(data);
 }
 
@@ -166,7 +166,13 @@ void console_print(char* str, ...)
 
 	va_start(argp, str);
 	for(string_ptr = str; *string_ptr != '\0'; string_ptr++)
+    //for(string_ptr = str; *string_ptr; string_ptr++)
 	{
+        /*if(*string_ptr == '\n'){
+            uart_write_char(*string_ptr);
+            break;
+        }*/
+        
 		if(*string_ptr!='%')
 		{
 			uart_write_char(*string_ptr);
@@ -289,16 +295,24 @@ char console_init(unsigned long baud_rate)
  *
  * @return None.
 *******************************************************************************/
-void console_get_command(char* command)
+void console_get_command(char* command, uint8_t* rx_cnt)
 {
 	char		  received_char	= 0;
 	unsigned char char_number	= 0;
+    
+    *rx_cnt = 0;
 
 	while((received_char != '\n') && (received_char != '\r'))
 	{
 		uart_read_char(&received_char);
-		command[char_number++] = received_char;
+        //Need to check for 0 values, for some reason I get a zero in between every char
+        if(received_char != 0){ 
+            command[char_number++] = received_char;
+        }
+		
 	}
+	*rx_cnt = char_number;
+	//printf("char num %d\r\n",char_number);
 }
 
 /***************************************************************************//**
@@ -327,18 +341,23 @@ int console_check_commands(char*	   received_cmd,
 	unsigned char index			   = 0;
 	const char	  digits[17]	   = "0123456789ABCDEF";
 	unsigned char digit_index	   = 0;
-
+    
+    
 	while((expected_cmd[char_index] != '!') &&
 		  (expected_cmd[char_index] != '?') &&
 		  (expected_cmd[char_index] != '=') &&
 		  (cmd_type != UNKNOWN_CMD))
 	{
+        //printf("Comparing '%d' == '%d' -- ", expected_cmd[char_index], received_cmd[char_index]);
 		if(expected_cmd[char_index] != received_cmd[char_index])
 		{
+            //printf(" -- NOT EQUAL!");
 			cmd_type = UNKNOWN_CMD;
 		}
+        //printf("\r\n");
 		char_index++;
 	}
+    
 	if(cmd_type != UNKNOWN_CMD)
 	{
 		if(expected_cmd[char_index] == '!')

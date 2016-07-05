@@ -98,8 +98,7 @@ int32_t ad9361_hdl_loopback(struct ad9361_rf_phy *phy, bool enable)
  * @param tx The Synthesizer TX = 1, RX = 0.
  * @return 0 in case of success, negative error code otherwise.
  */
-static int32_t ad9361_iodelay_set(struct axiadc_state *st, unsigned lane,
-			      unsigned val, bool tx)
+static int32_t ad9361_iodelay_set(struct axiadc_state *st, unsigned lane, unsigned val, bool tx)
 {
 	if (tx) {
 		if (PCORE_VERSION_MAJOR(st->pcore_version) > 8)
@@ -185,7 +184,7 @@ static void ad9361_dig_tune_verbose_print(struct ad9361_rf_phy *phy,
 {
 	int32_t i, j;
 
-	printk("SAMPL CLK: %"PRIu32" tuning: %s\n",
+	printk("SAMPLE CLK: %"PRIu32" tuning: %s\n",
 			clk_get_rate(phy, phy->ref_clk_scale[RX_SAMPL_CLK]), tx ? "TX" : "RX");
 	printk("  ");
 	for (i = 0; i < 16; i++)
@@ -195,7 +194,8 @@ static void ad9361_dig_tune_verbose_print(struct ad9361_rf_phy *phy,
 	for (i = 0; i < 2; i++) {
 		printk("%"PRIx32":", i);
 		for (j = 0; j < 16; j++) {
-			printk("%c ", (field[i][j] ? '#' : 'o'));
+			//printk("%c ", (field[i][j] ? '#' : 'o'));
+            printk("%d ",(int)field[i][j]);
 		}
 		printk("\n");
 	}
@@ -276,8 +276,7 @@ int32_t ad9361_dig_interface_timing_analysis(struct ad9361_rf_phy *phy,
  * @param flags Flags: BE_VERBOSE, BE_MOREVERBOSE, DO_IDELAY, DO_ODELAY.
  * @return 0 in case of success, negative error code otherwise.
  */
-int32_t ad9361_dig_tune(struct ad9361_rf_phy *phy, uint32_t max_freq,
-						enum dig_tune_flags flags)
+int32_t ad9361_dig_tune(struct ad9361_rf_phy *phy, uint32_t max_freq, enum dig_tune_flags flags)
 {
 	struct axiadc_converter *conv = phy->adc_conv;
 	struct axiadc_state *st = phy->adc_state;
@@ -361,24 +360,23 @@ int32_t ad9361_dig_tune(struct ad9361_rf_phy *phy, uint32_t max_freq,
 
 		c0 = ad9361_find_opt(&field[0][0], 16, &s0);
 		c1 = ad9361_find_opt(&field[1][0], 16, &s1);
+        ad9361_dig_tune_verbose_print(phy, field, t);
 
-		if (!c0 && !c1) {
+		if (c0 < 0 && c1 < 0) {
 			ad9361_dig_tune_verbose_print(phy, field, t);
-			dev_err(&phy->spi->dev, "%s: Tuning %s FAILED!", __func__,
-				t ? "TX" : "RX");
+			printf( "%s: Tuning %s FAILED!\r\n", __func__, t ? "TX" : "RX");
 			err |= -EIO;
 		} else if (flags & BE_VERBOSE) {
 			ad9361_dig_tune_verbose_print(phy, field, t);
 		}
 
-		if (c1 > c0)
+		if (c1 > c0){
 			ad9361_spi_write(phy->spi, REG_RX_CLOCK_DATA_DELAY + t,
-			DATA_CLK_DELAY(s1 + c1 / 2) |
-			RX_DATA_DELAY(0));
-		else
+			DATA_CLK_DELAY(s1 + c1 / 2) | RX_DATA_DELAY(0));
+		}else{
 			ad9361_spi_write(phy->spi, REG_RX_CLOCK_DATA_DELAY + t,
-			DATA_CLK_DELAY(0) |
-			RX_DATA_DELAY(s0 + c0 / 2));
+			DATA_CLK_DELAY(0) | RX_DATA_DELAY(s0 + c0 / 2));
+        }
 
 		if (t == 0) {
 			if (flags & DO_IDELAY)

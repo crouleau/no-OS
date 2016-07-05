@@ -192,6 +192,8 @@ void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel, uint8_t config_dma)
 	uint32_t data_q2;
 	uint32_t length;
 	uint32_t reg_ctrl_2;
+    
+    //printf("dac_init: 0\r\n");
 
 	dac_write(phy, DAC_REG_RSTN, 0x0);
 	dac_write(phy, DAC_REG_RSTN, DAC_RSTN | DAC_MMCM_RSTN);
@@ -199,7 +201,8 @@ void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel, uint8_t config_dma)
 	dds_st[phy->id_no].dac_clk = &phy->clks[TX_SAMPL_CLK]->rate;
 	dds_st[phy->id_no].rx2tx2 = phy->pdata->rx2tx2;
 	dac_read(phy, DAC_REG_CNTRL_2, &reg_ctrl_2);
-	if(dds_st[phy->id_no].rx2tx2)
+	//printf("dac_init: 1\r\n");
+    if(dds_st[phy->id_no].rx2tx2)
 	{
 		dds_st[phy->id_no].num_buf_channels = 4;
 		dac_write(phy, DAC_REG_RATECNTRL, DAC_RATE(3));
@@ -214,10 +217,12 @@ void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel, uint8_t config_dma)
 	dac_write(phy, DAC_REG_CNTRL_2, reg_ctrl_2);
 
 	dac_read(phy, DAC_REG_VERSION, &dds_st[phy->id_no].pcore_version);
-
+    //printf("dac_init: 2\r\n");
 	dac_stop(phy);
+    //printf("dac_init: 3\r\n");
 	switch (data_sel) {
 	case DATA_SEL_DDS:
+        printf("Configuring DAC using DATA_SEL_DDS\r\n");
 		dds_default_setup(phy, DDS_CHAN_TX1_I_F1, 90000, 1000000, 250000);
 		dds_default_setup(phy, DDS_CHAN_TX1_I_F2, 90000, 1000000, 250000);
 		dds_default_setup(phy, DDS_CHAN_TX1_Q_F1, 0, 1000000, 250000);
@@ -232,6 +237,8 @@ void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel, uint8_t config_dma)
 		dac_datasel(phy, -1, DATA_SEL_DDS);
 		break;
 	case DATA_SEL_DMA:
+        printf("Configuring DAC using DATA_SEL_DMA\r\n");
+        //printf("dac_init: 4\r\n");
 		if(config_dma)
 		{
 			tx_count = sizeof(sine_lut) / sizeof(uint16_t);
@@ -279,7 +286,10 @@ void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel, uint8_t config_dma)
 					Xil_Out32(DAC_DDR_BASEADDR + index * 4, data_i1 | data_q1);
 				}
 			}
-			Xil_DCacheFlush();
+            //printf("dac_init: before cacheflush\r\n");
+			//Xil_DCacheFlush(); 
+            Xil_L1DCacheFlush();
+            //printf("dac_init: after cacheflush\r\n");
 			if(dds_st[phy->id_no].rx2tx2)
 			{
 				length = (tx_count * 8);
@@ -291,21 +301,30 @@ void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel, uint8_t config_dma)
 #ifdef FMCOMMS5
 			length = (tx_count * 16);
 #endif
+			//printf("dac_init: dac_dma_write 0\r\n");
 			dac_dma_write(AXI_DMAC_REG_CTRL, 0);
+			//printf("dac_init: dac_dma_write 1\r\n");
 			dac_dma_write(AXI_DMAC_REG_CTRL, AXI_DMAC_CTRL_ENABLE);
 			dac_dma_write(AXI_DMAC_REG_SRC_ADDRESS, DAC_DDR_BASEADDR);
 			dac_dma_write(AXI_DMAC_REG_SRC_STRIDE, 0x0);
+			//printf("dac_init: dac_dma_write 2\r\n");
 			dac_dma_write(AXI_DMAC_REG_X_LENGTH, length - 1);
+			//printf("dac_init: dac_dma_write 3\r\n");
 			dac_dma_write(AXI_DMAC_REG_Y_LENGTH, 0x0);
-			dac_dma_write(AXI_DMAC_REG_START_TRANSFER, 0x1);
+			printf("dac_init: dac_dma_write 4\r\n");
+			dac_dma_write(AXI_DMAC_REG_START_TRANSFER, 0x1); //TODO: Fix me so I don't crash!!
+			printf("dac_init: dac_dma_write AXI_DMAC_REG_START_TRANSFER!\r\n");
 		}
 		dac_datasel(phy, -1, DATA_SEL_DMA);
+		printf("dac_init: case over 0\r\n");
 		break;
 	default:
 		break;
 	}
+    printf("dac_init: 60\r\n");
 	dds_st[phy->id_no].enable = true;
 	dac_start_sync(phy, 0);
+    printf("dac_init: 70\r\n");
 }
 
 /***************************************************************************//**

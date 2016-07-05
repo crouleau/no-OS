@@ -39,6 +39,8 @@
 #ifndef __CONSOLE_H__
 #define __CONSOLE_H__
 
+#include <stdint.h>
+
 /******************************************************************************/
 /******************** Macros and Constants Definitions ************************/
 /******************************************************************************/
@@ -57,7 +59,7 @@ char console_init(unsigned long baud_rate);
 void console_print(char* str, ...);
 
 /* Reads one command from console. */
-void console_get_command(char* command);
+void console_get_command(char* command, uint8_t* rx_cnt);
 
 /* Compares two commands and returns the type of the command. */
 int console_check_commands(char*	   received_cmd,

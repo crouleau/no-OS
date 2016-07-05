@@ -66,6 +66,14 @@ static struct axiadc_chip_info axiadc_chip_info_tbl[] =
 };
 #endif
 
+//statically allocate memory for ad9361_init, since malloc doesn't work
+char rf_phy_buf[650];
+char spi_device_buf[4];
+char clk_refin_buf[16];
+char pdata_buf[650];
+char axiadc_converter_buf[80];
+char axiadc_state_buf[16];
+
 /**
  * Initialize the AD9361 part.
  * @param init_param The structure that contains the AD9361 initial parameters.
@@ -76,40 +84,70 @@ static struct axiadc_chip_info axiadc_chip_info_tbl[] =
  */
 int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_param)
 {
+    static uint8_t only_call_once = 0;
+    printf("start ad9361_init \r\n");
 	struct ad9361_rf_phy *phy;
 	int32_t ret = 0;
 	int32_t rev = 0;
-	int32_t i   = 0;
+	int32_t i   = 0;    
 
-	phy = (struct ad9361_rf_phy *)zmalloc(sizeof(*phy));
+    if(only_call_once == 0){
+        only_call_once++;
+    }else{
+        printf("ERROR: ad9361_init called more than once!!!\r\n");
+    }
+    
+    memset(rf_phy_buf,0,sizeof(rf_phy_buf));
+    memset(spi_device_buf,0,sizeof(spi_device_buf));
+    memset(clk_refin_buf,0,sizeof(clk_refin_buf));
+    memset(pdata_buf,0,sizeof(pdata_buf));
+    memset(axiadc_converter_buf,0,sizeof(axiadc_converter_buf));
+    memset(axiadc_state_buf,0,sizeof(axiadc_state_buf));
+    
+    //printf("malloc ad9361_rf_phy: %d\r\n", sizeof(struct ad9361_rf_phy));            
+    phy = (struct ad9361_rf_phy *)&rf_phy_buf[0];
+    //printf("initial phy->pdata->rf_rx_input_sel val: %d\r\n",(int)phy->pdata->rf_rx_input_sel);
+	/*phy = (struct ad9361_rf_phy *)zmalloc(sizeof(*phy));    
 	if (!phy) {
 		return -ENOMEM;
-	}
+	}*/
 
-	phy->spi = (struct spi_device *)zmalloc(sizeof(*phy->spi));
+    //printf("malloc spi_device: %d\r\n",sizeof(struct spi_device));
+    phy->spi = (struct spi_device *)&spi_device_buf[0];
+	/*phy->spi = (struct spi_device *)zmalloc(sizeof(*phy->spi));
 	if (!phy->spi) {
 		return -ENOMEM;
-	}
-
-	phy->clk_refin = (struct clk *)zmalloc(sizeof(*phy->clk_refin));
+	}*/
+    
+    //printf("malloc clk_refin: %d",sizeof(struct clk));	
+    phy->clk_refin = (struct clk *)&clk_refin_buf[0];
+    /*phy->clk_refin = (struct clk *)zmalloc(sizeof(*phy->clk_refin));
 	if (!phy->clk_refin) {
 		return -ENOMEM;
-	}
-
-	phy->pdata = (struct ad9361_phy_platform_data *)zmalloc(sizeof(*phy->pdata));
+	}*/
+    
+    //printf("malloc ad9361_phy_platform_data: %d",sizeof(struct ad9361_phy_platform_data));
+    phy->pdata = (struct ad9361_phy_platform_data *)&pdata_buf[0];
+	/*phy->pdata = (struct ad9361_phy_platform_data *)zmalloc(sizeof(*phy->pdata));
 	if (!phy->pdata) {
 		return -ENOMEM;
-	}
+	}*/
+    
 #ifndef AXI_ADC_NOT_PRESENT
-	phy->adc_conv = (struct axiadc_converter *)zmalloc(sizeof(*phy->adc_conv));
+    //printf("malloc axiadc_converter: %d\r\n",sizeof(struct axiadc_converter));
+	phy->adc_conv = (struct axiadc_converter *)&axiadc_converter_buf[0];
+    /*phy->adc_conv = (struct axiadc_converter *)zmalloc(sizeof(*phy->adc_conv));
 	if (!phy->adc_conv) {
 		return -ENOMEM;
-	}
-
-	phy->adc_state = (struct axiadc_state *)zmalloc(sizeof(*phy->adc_state));
+	}*/
+    
+    //printf("malloc axiadc_state: %d\r\n",sizeof(struct axiadc_state));
+	phy->adc_state = (struct axiadc_state *)&axiadc_state_buf[0];
+	/*phy->adc_state = (struct axiadc_state *)zmalloc(sizeof(*phy->adc_state));
 	if (!phy->adc_state) {
 		return -ENOMEM;
-	}
+	}*/
+    
 	phy->adc_state->phy = phy;
 #endif
 
@@ -163,6 +201,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	phy->pdata->rf_tx_bandwidth_Hz = init_param->rf_tx_bandwidth_hz;
 
 	/* RF Port Control */
+    //printf("rf_rx_input_sel set to %d\r\n",(int)init_param->rx_rf_port_input_select);
 	phy->pdata->rf_rx_input_sel = init_param->rx_rf_port_input_select;
 	phy->pdata->rf_tx_output_sel = init_param->tx_rf_port_input_select;
 
@@ -416,9 +455,13 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	phy->ad9361_rfpll_ext_round_rate = init_param->ad9361_rfpll_ext_round_rate;
 	phy->ad9361_rfpll_ext_set_rate = init_param->ad9361_rfpll_ext_set_rate;
 
+    printf("start register clocks \r\n");
 	ret = register_clocks(phy);
-	if (ret < 0)
+	if (ret < 0){
+        printf("ERROR: could not register clocks!\r\n");
 		goto out;
+    }
+    printf("finish register clocks\r\n");
 
 #ifndef AXI_ADC_NOT_PRESENT
 	axiadc_init(phy);
@@ -426,16 +469,20 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 #endif
 
 	ad9361_init_gain_tables(phy);
-
+    printf("ad9361_setup \r\n");
 	ret = ad9361_setup(phy);
-	if (ret < 0)
+	if (ret < 0){
+        printf("error: ad9361 setup failed!\r\n");
 		goto out;
+    }
 
 #ifndef AXI_ADC_NOT_PRESENT
 	/* platform specific wrapper to call ad9361_post_setup() */
 	ret = axiadc_post_setup(phy);
-	if (ret < 0)
+	if (ret < 0){
+        printf("error; axiadc_post_setup failed!\r\n");
 		goto out;
+    }
 #endif
 
 	printf("%s : AD9361 Rev %d successfully initialized\n", "ad9361_init", (int)rev);
@@ -584,8 +631,7 @@ int32_t ad9361_get_en_state_machine_mode (struct ad9361_rf_phy *phy,
  * 				   10 (10 dB)
  * @return 0 in case of success, negative error code otherwise.
  */
-int32_t ad9361_set_rx_rf_gain (struct ad9361_rf_phy *phy,
-							   uint8_t ch, int32_t gain_db)
+int32_t ad9361_set_rx_rf_gain (struct ad9361_rf_phy *phy, uint8_t ch, int32_t gain_db)
 {
 	struct rf_rx_gain rx_gain = {0};
 	int32_t ret = 0;
@@ -596,9 +642,7 @@ int32_t ad9361_set_rx_rf_gain (struct ad9361_rf_phy *phy,
 	}
 
 	rx_gain.gain_db = gain_db;
-	ret = ad9361_set_rx_gain(phy,
-					ad9361_1rx1tx_channel_map(phy, false,
-					ch + 1), &rx_gain);
+	ret = ad9361_set_rx_gain(phy, ad9361_1rx1tx_channel_map(phy, false, ch + 1), &rx_gain);
 
 	return ret;
 }
@@ -690,8 +734,9 @@ int32_t ad9361_set_rx_sampling_freq (struct ad9361_rf_phy *phy,
 
 	ret = ad9361_calculate_rf_clock_chain(phy, sampling_freq_hz,
 		phy->rate_governor, rx, tx);
-	if (ret < 0)
+	if (ret < 0){
 		return ret;
+    }
 
 	ad9361_set_trx_clock_chain(phy, rx, tx);
 
@@ -1107,11 +1152,10 @@ int32_t ad9361_set_rx_rf_port_input (struct ad9361_rf_phy *phy,
 {
 	int32_t ret;
 
+    printf("rf_rx_input_sel set to %d\r\n",(int)mode);
 	phy->pdata->rf_rx_input_sel = mode;
 
-	ret = ad9361_rf_port_setup(phy, false,
-						phy->pdata->rf_rx_input_sel,
-						phy->pdata->rf_tx_output_sel);
+	ret = ad9361_rf_port_setup(phy, false,phy->pdata->rf_rx_input_sel,phy->pdata->rf_tx_output_sel);
 
 	return ret;
 }
@@ -1314,9 +1358,10 @@ int32_t ad9361_set_tx_sampling_freq (struct ad9361_rf_phy *phy,
 
 	ret = ad9361_calculate_rf_clock_chain(phy, sampling_freq_hz,
 		phy->rate_governor, rx, tx);
-	if (ret < 0)
+	if (ret < 0){
 		return ret;
-
+    }
+    
 	ad9361_set_trx_clock_chain(phy, rx, tx);
 
 	ret = ad9361_update_rf_bandwidth(phy, phy->current_rx_bw_Hz,
@@ -1370,8 +1415,7 @@ int32_t ad9361_set_tx_lo_freq (struct ad9361_rf_phy *phy,
 int32_t ad9361_get_tx_lo_freq (struct ad9361_rf_phy *phy,
 							   uint64_t *lo_freq_hz)
 {
-	*lo_freq_hz = ad9361_from_clk(clk_get_rate(phy,
-										phy->ref_clk_scale[TX_RFPLL]));
+	*lo_freq_hz = ad9361_from_clk(clk_get_rate(phy, phy->ref_clk_scale[TX_RFPLL]));
 
 	return 0;
 }
@@ -1695,8 +1739,9 @@ int32_t ad9361_set_trx_path_clks(struct ad9361_rf_phy *phy,
 	int32_t ret;
 
 	ret = ad9361_set_trx_clock_chain(phy, rx_path_clks, tx_path_clks);
-	if (ret < 0)
+	if (ret < 0){
 		return ret;
+    }
 
 	ret = ad9361_update_rf_bandwidth(phy, phy->current_rx_bw_Hz,
 					phy->current_tx_bw_Hz);

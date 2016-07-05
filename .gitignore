@@ -4,6 +4,7 @@
 *.layout
 *.xlsx
 *.csv
+*microblaze_0*
 
 #################
 ## Eclipse

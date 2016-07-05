@@ -42,6 +42,7 @@
 /******************************************************************************/
 #include "config.h"
 #include "ad9361_api.h"
+#include <stdint.h>
 #include "parameters.h"
 #include "platform.h"
 #ifdef CONSOLE_COMMANDS
@@ -367,6 +368,12 @@ struct ad9361_rf_phy *ad9361_phy_b;
 *******************************************************************************/
 int main(void)
 {
+    printf("\r\n\r\n\r\n");
+    printf("=====================================\r\n");
+    printf("==         Starting main()         ==\r\n");
+    printf("=====================================\r\n");
+    printf("\r\n");
+    
 #ifdef XILINX_PLATFORM
 	Xil_ICacheEnable();
 	Xil_DCacheEnable();
@@ -413,10 +420,15 @@ int main(void)
 	default_init_param.digital_interface_tune_fir_disable = 1;
 #endif
 
+    //dev_dbg(&spi->dev, "dev_dbg Before AD0361_init");
+	printf("starting ad9361_init\r\n");
 	ad9361_init(&ad9361_phy, &default_init_param);
-
+	printf("ad9361_init done\r\n");
+    
 	ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
+    printf("done with ad9361_set_tx_fir_config\r\n");
 	ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
+    printf("done with ad9361_set_rx_fir_config\r\n");
 
 #ifdef FMCOMMS5
 #ifdef LINUX_PLATFORM
@@ -446,7 +458,9 @@ int main(void)
 #ifdef FMCOMMS5
 	dac_init(ad9361_phy_b, DATA_SEL_DMA, 0);
 #endif
+	printf("starting dac_init\r\n");
 	dac_init(ad9361_phy, DATA_SEL_DMA, 1);
+	printf("done with dac_init\r\n");
 #else
 #ifdef FMCOMMS5
 	dac_init(ad9361_phy_b, DATA_SEL_DDS, 0);
@@ -472,12 +486,31 @@ int main(void)
 #endif
 #endif
 
+printf("\r\n");
+printf("=====================================\r\n");
+printf("== AD9364 Configuration completed! ==\r\n");
+printf("=====================================\r\n");
+printf("\r\n");
+
 #ifdef CONSOLE_COMMANDS
-	get_help(NULL, 0);
+	//get_help(NULL, 0);
 
 	while(1)
 	{
-		console_get_command(received_cmd);
+		uint8_t cmd_cnt;
+		console_get_command(received_cmd, &cmd_cnt);
+
+		/*printf("Rx %d: ",cmd_cnt);
+		uint8_t i;
+		for(i=0; i<cmd_cnt; i++)
+		{
+			printf(&received_cmd[i]);
+		}
+		printf("\r\n");*/
+
+		//printf("cmd expected: %s\r\n",cmd_list[0].name);
+		//cmd_no = 1;
+
 		invalid_cmd = 0;
 		for(cmd = 0; cmd < cmd_no; cmd++)
 		{
@@ -496,6 +529,7 @@ int main(void)
 		if(invalid_cmd == cmd_no)
 		{
 			console_print("Invalid command!\n");
+
 		}
 	}
 #endif

@@ -184,6 +184,15 @@ int spi_write_then_read(struct spi_device *spi,
 	{
 		rxbuf[byte - n_tx] = buffer[byte];
 	}
+    
+    /*if(n_rx>0){
+        printf("SPI rx: %d\r\n",n_rx);
+        //printf("x%02x",rxbuf[0]);
+        for(byte=0; byte<n_rx; byte++){
+            printf("x%02x",rxbuf[byte]);
+        }
+        printf("\r\n");
+    }*/
 
 	return SUCCESS;
 }
@@ -299,7 +308,7 @@ unsigned long msleep_interruptible(unsigned int msecs)
 void axiadc_init(struct ad9361_rf_phy *phy)
 {
 	adc_init(phy);
-	dac_init(phy, DATA_SEL_DDS, 0);
+	//dac_init(phy, DATA_SEL_DDS, 0); //TODO: NOTE: Big change!
 }
 
 /***************************************************************************//**

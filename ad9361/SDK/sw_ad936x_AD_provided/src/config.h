@@ -62,6 +62,6 @@
 //#define CAPTURE_SCRIPT
 //#define AXI_ADC_NOT_PRESENT
 
-#define DAC_DMA //Define this to use the sine_lut, possibly modifies other stuff too
+//#define DAC_DMA //Define this to use the sine_lut, possibly modifies other stuff too
 
 #endif

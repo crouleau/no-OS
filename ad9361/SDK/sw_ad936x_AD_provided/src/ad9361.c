@@ -579,7 +579,7 @@ int32_t ad9361_spi_readm(struct spi_device *spi, uint32_t reg,
 
 	ret = spi_write_then_read(spi, &buf[0], 2, rbuf, num);
 	if (ret < 0) {
-		dev_err(&spi->dev, "Read Error %"PRId32, ret);
+		printf("Read Error %"PRId32, ret);
 		return ret;
 	}
 #ifdef _DEBUG
@@ -606,8 +606,7 @@ int32_t ad9361_spi_read(struct spi_device *spi, uint32_t reg)
 	int32_t ret;
 
 	ret = ad9361_spi_readm(spi, reg, &buf, 1);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	return buf;
 }
@@ -630,8 +629,7 @@ static int32_t __ad9361_spi_readf(struct spi_device *spi, uint32_t reg,
 		return -EINVAL;
 
 	ret = ad9361_spi_readm(spi, reg, &buf, 1);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	buf &= mask;
 	buf >>= offset;
@@ -670,7 +668,7 @@ int32_t ad9361_spi_write(struct spi_device *spi,
 
 	ret = spi_write_then_read(spi, buf, 3, NULL, 0);
 	if (ret < 0) {
-		dev_err(&spi->dev, "Write Error %"PRId32, ret);
+		printf("Write Error %"PRId32, ret);
 		return ret;
 	}
 
@@ -700,8 +698,7 @@ static int32_t __ad9361_spi_writef(struct spi_device *spi, uint32_t reg,
 		return -EINVAL;
 
 	ret = ad9361_spi_readm(spi, reg, &buf, 1);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	buf &= ~mask;
 	buf |= ((val << offset) & mask);
@@ -751,7 +748,7 @@ static int32_t ad9361_spi_writem(struct spi_device *spi,
 #endif
 	ret = spi_write_then_read(spi, buf, num + 2, NULL, 0);
 	if (ret < 0) {
-		dev_err(&spi->dev, "Write Error %"PRId32, ret);
+		printf("Write Error %"PRId32, ret);
 		return ret;
 	}
 
@@ -776,12 +773,16 @@ int32_t ad9361_find_opt(uint8_t *field, uint32_t size, uint32_t *ret_start)
 {
 	int32_t i, cnt = 0, max_cnt = 0, start, max_start = 0;
 
-	for(i = 0, start = -1; i < (int64_t)size; i++) {
-		if (field[i] == 0) {
+    printf("ad9361_find_opt: size: %"PRIu32"\r\n",size);
+    
+	for(i = 0, start = -1; i < (int64_t)size; i++) {        
+		//printf("field[%d]=%d\r\n",(int)i,(int)field[i]);
+        if (field[i] == 0) {
 			if (start == -1)
 				start = i;
 			cnt++;
-		} else {
+            //printf("field["PRIu32"]=0\r\n",i);
+		} else {            
 			if (cnt > max_cnt) {
 				max_cnt = cnt;
 				max_start = start;
@@ -797,6 +798,7 @@ int32_t ad9361_find_opt(uint8_t *field, uint32_t size, uint32_t *ret_start)
 	}
 
 	*ret_start = max_start;
+    printf("ad9361_find_opt: returning: %"PRIu32"\r\n",max_cnt);
 
 	return max_cnt;
 }
@@ -849,8 +851,7 @@ int32_t ad9361_reset(struct ad9361_rf_phy *phy)
 
 	ad9361_spi_write(phy->spi, REG_SPI_CONF, SOFT_RESET | _SOFT_RESET);
 	ad9361_spi_write(phy->spi, REG_SPI_CONF, 0x0);
-	dev_err(&phy->spi->dev,
-		 "%s: by SPI, this may cause unpredicted behavior!", __func__);
+	printf("%s: by SPI, this may cause unpredicted behavior!", __func__);
 
 	return -ENODEV;
 }
@@ -1091,9 +1092,10 @@ void ad9361_get_bist_tone(struct ad9361_rf_phy *phy,
 static int32_t ad9361_check_cal_done(struct ad9361_rf_phy *phy, uint32_t reg,
 	uint32_t mask, bool done_state)
 {
-	uint32_t timeout = 5000; /* RFDC_CAL can take long */
+	uint32_t timeout = 10000; /* RFDC_CAL can take long */
 	uint32_t state;
 
+    //printf("INFO: Starting ad9361_check_cal_done\r\n");
 	do {
 		state = ad9361_spi_readf(phy->spi, reg, mask);
 		if (state == done_state)
@@ -1105,7 +1107,7 @@ static int32_t ad9361_check_cal_done(struct ad9361_rf_phy *phy, uint32_t reg,
 			udelay(120);
 	} while (timeout--);
 
-	dev_err(&phy->spi->dev, "Calibration TIMEOUT (0x%"PRIX32", 0x%"PRIX32")", reg, mask);
+	printf( "Calibration TIMEOUT (0x%"PRIX32", 0x%"PRIX32")\r\n", reg, mask);
 
 	return -ETIMEDOUT;
 }
@@ -1121,8 +1123,7 @@ static int32_t ad9361_check_cal_done(struct ad9361_rf_phy *phy, uint32_t reg,
 static int32_t ad9361_run_calibration(struct ad9361_rf_phy *phy, uint32_t mask)
 {
 	int32_t ret = ad9361_spi_write(phy->spi, REG_CALIBRATION_CTRL, mask);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	dev_dbg(&phy->spi->dev, "%s: CAL Mask 0x%"PRIx32, __func__, mask);
 
@@ -1362,8 +1363,7 @@ int32_t ad9361_get_tx_atten(struct ad9361_rf_phy *phy, uint32_t tx_num)
 	ret = ad9361_spi_readm(phy->spi, (tx_num == 1) ?
 	REG_TX1_ATTEN_1 : REG_TX2_ATTEN_1, buf, 2);
 
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	code = (buf[0] << 8) | buf[1];
 
@@ -1585,7 +1585,7 @@ int32_t ad9361_get_rx_gain(struct ad9361_rf_phy *phy,
 		fast_atk_shift = RX2_FAST_ATK_SHIFT;
 	}
 	else {
-		dev_err(dev, "Unknown Rx path %"PRIu32, rx_id);
+		printf("Unknown Rx path %"PRIu32, rx_id);
 		rc = -EINVAL;
 		goto out;
 	}
@@ -1683,7 +1683,7 @@ void ad9361_ensm_force_state(struct ad9361_rf_phy *phy, uint8_t ensm_state)
 		val |= TO_ALERT | FORCE_ALERT_STATE;
 		break;
 	default:
-		dev_err(dev, "No handling for forcing %d ensm state",
+		printf("No handling for forcing %d ensm state",
 			ensm_state);
 		goto out;
 	}
@@ -1692,7 +1692,7 @@ void ad9361_ensm_force_state(struct ad9361_rf_phy *phy, uint8_t ensm_state)
 
 	rc = ad9361_spi_write(spi, REG_ENSM_CONFIG_1, val);
 	if (rc)
-		dev_err(dev, "Failed to restore state");
+		printf("Failed to restore state");
 
 out:
 	return;
@@ -1743,7 +1743,7 @@ void ad9361_ensm_restore_prev_state(struct ad9361_rf_phy *phy)
 
 	rc = ad9361_spi_write(spi, REG_ENSM_CONFIG_1, val);
 	if (rc) {
-		dev_err(dev, "Failed to write ENSM_CONFIG_1");
+		printf("Failed to write ENSM_CONFIG_1");
 		goto out;
 	}
 
@@ -1751,7 +1751,7 @@ void ad9361_ensm_restore_prev_state(struct ad9361_rf_phy *phy)
 		val |= ENABLE_ENSM_PIN_CTRL;
 		rc = ad9361_spi_write(spi, REG_ENSM_CONFIG_1, val);
 		if (rc)
-			dev_err(dev, "Failed to write ENSM_CONFIG_1");
+			printf("Failed to write ENSM_CONFIG_1");
 	}
 
 out:
@@ -1774,11 +1774,11 @@ struct rf_rx_gain *rx_gain)
 	if ((rx_gain->fgt_lmt_index > MAX_LMT_INDEX) ||
 		(rx_gain->lpf_gain > MAX_LPF_GAIN) ||
 		(rx_gain->digital_gain > MAX_DIG_GAIN)) {
-		dev_err(dev, "LMT_INDEX missing or greater than max value %d",
+		printf("LMT_INDEX missing or greater than max value %d",
 			MAX_LMT_INDEX);
-		dev_err(dev, "LPF_GAIN missing or greater than max value %d",
+		printf("LPF_GAIN missing or greater than max value %d",
 			MAX_LPF_GAIN);
-		dev_err(dev, "DIGITAL_GAIN cannot be more than %d",
+		printf("DIGITAL_GAIN cannot be more than %d",
 			MAX_DIG_GAIN);
 		rc = -EINVAL;
 		goto out;
@@ -1787,8 +1787,7 @@ struct rf_rx_gain *rx_gain)
 		dev_dbg(dev, "Ignoring rx_gain value in split table mode.");
 	if (rx_gain->fgt_lmt_index == 0 && rx_gain->lpf_gain == 0 &&
 		rx_gain->digital_gain == 0) {
-		dev_err(dev,
-			"In split table mode, All LMT/LPF/digital gains cannot be 0");
+		printf("In split table mode, All LMT/LPF/digital gains cannot be 0");
 		rc = -EINVAL;
 		goto out;
 	}
@@ -1801,7 +1800,7 @@ struct rf_rx_gain *rx_gain)
 
 	}
 	else if (rx_gain->digital_gain > 0) {
-		dev_err(dev, "Digital gain is disabled and cannot be set");
+		printf("Digital gain is disabled and cannot be set");
 	}
 out:
 	return rc;
@@ -1835,7 +1834,7 @@ struct rf_rx_gain *rx_gain)
 	if ((rx_gain->gain_db < gain_info->starting_gain_db) ||
 		(rx_gain->gain_db > gain_info->max_gain_db)) {
 
-		dev_err(dev, "Invalid gain %"PRId32", supported range [%"PRId32" - %"PRId32"]",
+		printf("Invalid gain %"PRId32", supported range [%"PRId32" - %"PRId32"]",
 			rx_gain->gain_db, gain_info->starting_gain_db,
 			gain_info->max_gain_db);
 		rc = -EINVAL;
@@ -1876,7 +1875,7 @@ int32_t ad9361_set_rx_gain(struct ad9361_rf_phy *phy,
 		idx_reg = REG_RX2_MANUAL_LMT_FULL_GAIN;
 	}
 	else {
-		dev_err(dev, "Unknown Rx path %"PRIu32, rx_id);
+		printf("Unknown Rx path %"PRIu32, rx_id);
 		rc = -EINVAL;
 		goto out;
 
@@ -1896,7 +1895,7 @@ int32_t ad9361_set_rx_gain(struct ad9361_rf_phy *phy,
 		rc = set_full_table_gain(phy, idx_reg, rx_gain);
 
 	if (rc) {
-		dev_err(dev, "Unable to write gain tbl idx reg: %"PRIu32, idx_reg);
+		printf("Unable to write gain tbl idx reg: %"PRIu32, idx_reg);
 		goto out;
 	}
 
@@ -2074,7 +2073,7 @@ int32_t ad9361_set_gain_ctrl_mode(struct ad9361_rf_phy *phy,
 
 	rc = ad9361_spi_readm(spi, REG_AGC_CONFIG_1, &val, 1);
 	if (rc) {
-		dev_err(dev, "Unable to read AGC config1 register: %x",
+		printf("Unable to read AGC config1 register: %x",
 			REG_AGC_CONFIG_1);
 		goto out;
 	}
@@ -2104,14 +2103,14 @@ int32_t ad9361_set_gain_ctrl_mode(struct ad9361_rf_phy *phy,
 		gain_ctl_shift = RX2_GAIN_CTRL_SHIFT;
 	}
 	else {
-		dev_err(dev, "Unknown Rx path %"PRIu32, gain_ctrl->ant);
+		printf("Unknown Rx path %"PRIu32, gain_ctrl->ant);
 		rc = -EINVAL;
 		goto out;
 	}
 
 	rc = ad9361_en_dis_rx(phy, gain_ctrl->ant, RX_DISABLE);
 	if (rc) {
-		dev_err(dev, "Unable to disable rx%"PRIu32, gain_ctrl->ant);
+		printf("Unable to disable rx%"PRIu32, gain_ctrl->ant);
 		goto out;
 	}
 
@@ -2124,7 +2123,7 @@ int32_t ad9361_set_gain_ctrl_mode(struct ad9361_rf_phy *phy,
 
 	rc = ad9361_spi_write(spi, REG_AGC_CONFIG_1, val);
 	if (rc) {
-		dev_err(dev, "Unable to write AGC config1 register: %x",
+		printf("Unable to write AGC config1 register: %x",
 			REG_AGC_CONFIG_1);
 		goto out;
 	}
@@ -2235,7 +2234,7 @@ static int32_t ad9361_rx_adc_setup(struct ad9361_rf_phy *phy, uint32_t bbpll_fre
 	do_div(&invrc_tconst_1e6, 1000000000UL);
 
 	if (invrc_tconst_1e6 > ULONG_MAX)
-		dev_err(&phy->spi->dev, "invrc_tconst_1e6 > ULONG_MAX");
+		printf( "invrc_tconst_1e6 > ULONG_MAX");
 
 	sqrt_inv_rc_tconst_1e3 = int_sqrt((uint32_t)invrc_tconst_1e6);
 	maxsnr = 640 / 160;
@@ -2321,8 +2320,7 @@ static int32_t ad9361_rx_adc_setup(struct ad9361_rf_phy *phy, uint32_t bbpll_fre
 
 	for (i = 0; i < 40; i++) {
 		ret = ad9361_spi_write(phy->spi, 0x200 + i, data[i]);
-		if (ret < 0)
-			return ret;
+		if (ret < 0) return ret;
 	}
 
 	return 0;
@@ -2700,28 +2698,23 @@ static int32_t __ad9361_update_rf_bandwidth(struct ad9361_rf_phy *phy,
 	ret = ad9361_rx_bb_analog_filter_calib(phy,
 				real_rx_bandwidth,
 				bbpll_freq);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ret = ad9361_tx_bb_analog_filter_calib(phy,
 				real_tx_bandwidth,
 				bbpll_freq);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ret = ad9361_rx_tia_calib(phy, real_rx_bandwidth);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ret = ad9361_tx_bb_second_filter_calib(phy, real_tx_bandwidth);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ret = ad9361_rx_adc_setup(phy,
 				bbpll_freq,
 				clk_get_rate(phy, phy->ref_clk_scale[ADC_CLK]));
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	return 0;
 }
@@ -2750,8 +2743,7 @@ static int32_t __ad9361_tx_quad_calib(struct ad9361_rf_phy *phy, uint32_t phase,
 			GAIN_ENABLE | PHASE_ENABLE | M_DECIM(decim));
 
 	ret =  ad9361_run_calibration(phy, TX_QUAD_CAL);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	if (res)
 		*res = ad9361_spi_read(phy->spi,
@@ -2778,8 +2770,7 @@ static int32_t ad9361_tx_quad_phase_search(struct ad9361_rf_phy *phy, uint32_t r
 
 	for (i = 0; i < (int64_t)(ARRAY_SIZE(field) / 2); i++) {
 		ret =  __ad9361_tx_quad_calib(phy, i, rxnco_word, decim, &val);
-		if (ret < 0)
-			return ret;
+		if (ret < 0) return ret;
 
 		/* Handle 360/0 wrap around */
 		field[i] = field[i + 32] = !((val & TX1_LO_CONV) && (val & TX1_SSB_CONV));
@@ -2803,8 +2794,7 @@ static int32_t ad9361_tx_quad_phase_search(struct ad9361_rf_phy *phy, uint32_t r
 #endif
 
 	ret = __ad9361_tx_quad_calib(phy, phy->last_tx_quad_cal_phase, rxnco_word, decim, NULL);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	return 0;
 }
@@ -2890,7 +2880,7 @@ static int32_t ad9361_tx_quad_calib(struct ad9361_rf_phy *phy,
 		}
 	}
 	else
-		dev_err(dev, "Unhandled case in %s line %d clkrf %"PRIu32" clktf %"PRIu32,
+		printf("Unhandled case in %s line %d clkrf %"PRIu32" clktf %"PRIu32,
 		__func__, __LINE__, clkrf, clktf);
 
 
@@ -2902,8 +2892,7 @@ static int32_t ad9361_tx_quad_calib(struct ad9361_rf_phy *phy,
 	if (txnco_freq > (int64_t)(bw_rx / 4) || txnco_freq > (int64_t)(bw_tx / 4)) {
 		/* Make sure the BW during calibration is wide enough */
 		ret = __ad9361_update_rf_bandwidth(phy, txnco_freq * 8, txnco_freq * 8);
-		if (ret < 0)
-			return ret;
+		if (ret < 0) return ret;
 	}
 
 	if (phy->pdata->rx1rx2_phase_inversion_en ||
@@ -2943,7 +2932,7 @@ static int32_t ad9361_tx_quad_calib(struct ad9361_rf_phy *phy,
 	}
 
 	if (i >= index_max)
-		dev_err(dev, "failed to find suitable LPF TIA value in gain table");
+		printf("failed to find suitable LPF TIA value in gain table");
 
 	ad9361_spi_write(spi, REG_QUAD_SETTLE_COUNT, 0xF0);
 	ad9361_spi_write(spi, REG_TX_QUAD_LPF_GAIN, 0x00);
@@ -3249,19 +3238,24 @@ static int32_t ad9361_txmon_control(struct ad9361_rf_phy *phy,
 * @param txb TX output option identifier
 * @return 0 in case of success, negative error code otherwise.
 */
-int32_t ad9361_rf_port_setup(struct ad9361_rf_phy *phy, bool is_out,
-				    uint32_t rx_inputs, uint32_t txb)
+int32_t ad9361_rf_port_setup(struct ad9361_rf_phy *phy, bool is_out, uint32_t rx_inputs, uint32_t txb)
 {
 	uint32_t val;
+    int32_t retval;
 
-	if (rx_inputs > 11)
+	if (rx_inputs > 11){
+        printf("ERROR: ad9361_rf_port_setup: rx_inputs = %d > 11!\r\n",(int)rx_inputs);
 		return -EINVAL;
+    }
 
 	if (!is_out) {
-		if (rx_inputs > 8)
-			return ad9361_txmon_control(phy, rx_inputs & (TX_1 | TX_2));
-		else
+		if (rx_inputs > 8){
+            retval = ad9361_txmon_control(phy, rx_inputs & (TX_1 | TX_2));
+            if (retval < 0) printf("ERROR: ad9361_txmon_control\r\n");
+			return retval;
+        }else{
 			ad9361_txmon_control(phy, 0);
+        }
 	}
 
 	if (rx_inputs < 3)
@@ -3275,7 +3269,9 @@ int32_t ad9361_rf_port_setup(struct ad9361_rf_phy *phy, bool is_out,
 	dev_dbg(&phy->spi->dev, "%s : INPUT_SELECT 0x%"PRIx32,
 		__func__, val);
 
-	return ad9361_spi_write(phy->spi, REG_INPUT_SELECT, val);
+    retval = ad9361_spi_write(phy->spi, REG_INPUT_SELECT, val);
+    if (retval < 0) printf("ERROR: ad9361_spi_write\r\n");
+	return retval;
 }
 
 /**
@@ -3993,8 +3989,7 @@ struct rssi_control *ctrl,
 
 	ret = ad9361_spi_write(spi, REG_RSSI_CONFIG, temp); // RSSI Mode Select
 
-	if (ret < 0)
-		dev_err(&phy->spi->dev, "Unable to write rssi config");
+	if (ret < 0) printf( "Unable to write rssi config\r\n");
 
 	return 0;
 }
@@ -4094,13 +4089,13 @@ int32_t ad9361_ensm_set_state(struct ad9361_rf_phy *phy, uint8_t ensm_state,
 		return 0;
 
 	default:
-		dev_err(dev, "No handling for forcing %d ensm state",
+		printf("No handling for forcing %d ensm state",
 			ensm_state);
 		goto out;
 	}
 
 	if (rc) {
-		dev_err(dev, "Invalid ENSM state transition in %s mode",
+		printf("Invalid ENSM state transition in %s mode",
 			phy->pdata->fdd ? "FDD" : "TDD");
 		goto out;
 	}
@@ -4112,7 +4107,7 @@ int32_t ad9361_ensm_set_state(struct ad9361_rf_phy *phy, uint8_t ensm_state,
 
 	rc = ad9361_spi_write(spi, REG_ENSM_CONFIG_1, val);
 	if (rc)
-		dev_err(dev, "Failed to restore state");
+		printf("Failed to restore state");
 
 	if ((val & FORCE_RX_ON) &&
 		(phy->agc_mode[0] == RF_GAIN_MGC ||
@@ -4152,8 +4147,7 @@ static int32_t ad9361_validate_trx_clock_chain(struct ad9361_rf_phy *phy,
 	/* CMOS Mode */
 	if (!(phy->pdata->port_ctrl.pp_conf[2] & LVDS_MODE) &&
 		(data_clk > 61440000UL)) {
-		dev_err(&phy->spi->dev,
-			"%s: Failed CMOS MODE DATA_CLK > 61.44MSPS", __func__);
+		printf("%s: Failed CMOS MODE DATA_CLK > 61.44MSPS", __func__);
 		return -EINVAL;
 	}
 
@@ -4167,7 +4161,7 @@ static int32_t ad9361_validate_trx_clock_chain(struct ad9361_rf_phy *phy,
 			return 0;
 	}
 
-	dev_err(&phy->spi->dev, "%s: Failed - at least one of the clock rates"
+	printf( "%s: Failed - at least one of the clock rates"
 		" must be equal to the DATA_CLK (lvds) rate", __func__);
 
 	return -EINVAL;
@@ -4202,24 +4196,22 @@ int32_t ad9361_set_trx_clock_chain(struct ad9361_rf_phy *phy,
 		tx_path_clks[CLKRF_FREQ], tx_path_clks[RX_SAMPL_FREQ]);
 
 	ret = ad9361_validate_trx_clock_chain(phy, rx_path_clks);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ret = clk_set_rate(phy, phy->ref_clk_scale[BBPLL_CLK], rx_path_clks[BBPLL_FREQ]);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	for (i = ADC_CLK, j = DAC_CLK, n = ADC_FREQ;
 		i <= RX_SAMPL_CLK; i++, j++, n++) {
 		ret = clk_set_rate(phy, phy->ref_clk_scale[i], rx_path_clks[n]);
 		if (ret < 0) {
-			dev_err(dev, "Failed to set BB ref clock rate (%"PRId32")",
+			printf("Failed to set BB ref clock rate (%"PRId32")",
 				ret);
 			return ret;
 		}
 		ret = clk_set_rate(phy, phy->ref_clk_scale[j], tx_path_clks[n]);
 		if (ret < 0) {
-			dev_err(dev, "Failed to set BB ref clock rate (%"PRId32")",
+			printf("Failed to set BB ref clock rate (%"PRId32")",
 				ret);
 			return ret;
 		}
@@ -4381,7 +4373,7 @@ int32_t ad9361_calculate_rf_clock_chain(struct ad9361_rf_phy *phy,
 			++rate_gov, rx_path_clks, tx_path_clks);
 	}
 	else if ((index_tx < 0 || index_tx > 6 || index_rx < 0 || index_rx > 6)) {
-		dev_err(&phy->spi->dev, "%s: Failed to find suitable dividers: %s",
+		printf( "%s: Failed to find suitable dividers: %s",
 			__func__, (adc_rate < MIN_ADC_CLK) ? "ADC clock below limit" : "BBPLL rate above limit");
 
 		return -EINVAL;
@@ -4427,8 +4419,8 @@ int32_t ad9361_set_trx_clock_chain_freq(struct ad9361_rf_phy *phy,
 
 	ret = ad9361_calculate_rf_clock_chain(phy, freq,
 		phy->rate_governor, rx, tx);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
+    
 	return ad9361_set_trx_clock_chain(phy, rx, tx);
 }
 
@@ -4895,6 +4887,7 @@ static uint32_t ad9361_ref_div_sel(uint32_t refin_Hz, uint32_t max)
  */
 int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 {
+    printf("ad9361_setup start\r\n");
 	uint32_t refin_Hz, ref_freq, bbpll_freq;
 	struct spi_device *spi = phy->spi;
 	struct ad9361_phy_platform_data *pd = phy->pdata;
@@ -4927,9 +4920,12 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 
 	refin_Hz = phy->clk_refin->rate;
 
+    printf("ad9361_ref_div_sel ref freq: %d\r\n",(int)refin_Hz);
 	ref_freq = ad9361_ref_div_sel(refin_Hz, MAX_BBPLL_FREF);
-	if (!ref_freq)
+	if (!ref_freq){
+        printf("ad9361_setup error: !ref_freq\r\n");
 		return -EINVAL;
+    }
 
 	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_1, RX_REF_RESET_BAR, 1);
 	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_2, TX_REF_RESET_BAR, 1);
@@ -4938,29 +4934,33 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_2,
 		RX_REF_DOUBLER_FB_DELAY(~0), 3); /* FB DELAY */
 
+    printf("reg_clock_enable write %d\r\n",pd->use_extclk);
 	ad9361_spi_write(spi, REG_CLOCK_ENABLE,
 		DIGITAL_POWER_UP | CLOCK_ENABLE_DFLT | BBPLL_ENABLE |
 		(pd->use_extclk ? XO_BYPASS : 0)); /* Enable Clocks */
 
+    printf("clk_set_rate\r\n");
 	ret = clk_set_rate(phy, phy->ref_clk_scale[BB_REFCLK], ref_freq);
 	if (ret < 0) {
-		dev_err(dev, "Failed to set BB ref clock rate (%"PRId32")",
-			ret);
+		printf("Failed to set BB ref clock rate (%"PRId32")",ret);
 		return ret;
 	}
 
-	ret = ad9361_set_trx_clock_chain(phy, pd->rx_path_clks,
-		pd->tx_path_clks);
-	if (ret < 0)
+    printf("ad9361_set_trx_clock_chain\r\n");
+	ret = ad9361_set_trx_clock_chain(phy, pd->rx_path_clks,pd->tx_path_clks);
+	if (ret < 0){
+        printf("ad9361_setup error: ad9361_set_trx_clock_chain returned <0\r\n");
 		return ret;
-
+    }
+    
+    printf("clk_prepare_enable\r\n");
 	ret = clk_prepare_enable(phy->clks[BB_REFCLK]);
 	if (ret < 0) {
-		dev_err(dev, "Failed to enable BB ref clock rate (%"PRId32")",
-			ret);
+		printf("Failed to enable BB ref clock rate (%"PRId32")",ret);
 		return ret;
 	}
 
+    
 	if (!pd->rx2tx2) {
 		pd->rx1tx1_mode_use_tx_num =
 			clamp_t(uint32_t, pd->rx1tx1_mode_use_tx_num, TX_1, TX_2);
@@ -4974,40 +4974,52 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 		ad9361_en_dis_rx(phy, RX_1 | RX_2, RX_1 | RX_2);
 	}
 
-	ret = ad9361_rf_port_setup(phy, true, pd->rf_rx_input_sel,
-				   pd->rf_tx_output_sel);
-	if (ret < 0)
+	ret = ad9361_rf_port_setup(phy, true, pd->rf_rx_input_sel,pd->rf_tx_output_sel);
+	if (ret < 0){
+        printf("ad9361_rf_port_setup error\r\n");
 		return ret;
+    }
 
 	ret = ad9361_pp_port_setup(phy, false);
-	if (ret < 0)
-		return ret;
+	if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_pp_port_setup\r\n");
+        return ret;
+    }
 
 	ret = ad9361_auxdac_setup(phy, &pd->auxdac_ctrl);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	bbpll_freq = clk_get_rate(phy, phy->ref_clk_scale[BBPLL_CLK]);
 	ret = ad9361_auxadc_setup(phy, &pd->auxadc_ctrl, bbpll_freq);
-	if (ret < 0)
-		return ret;
+	if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_auxadc_setup\r\n");
+        return ret;
+    }
 
 	ret = ad9361_ctrl_outs_setup(phy, &pd->ctrl_outs_ctrl);
-	if (ret < 0)
-		return ret;
+	if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_ctrl_outs_setup\r\n");
+        return ret;
+    }
 
 	ret = ad9361_gpo_setup(phy, &pd->gpo_ctrl);
-	if (ret < 0)
-		return ret;
+	if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_gpo_setup\r\n");
+        return ret;
+    }
 
 	ret = ad9361_set_ref_clk_cycles(phy, refin_Hz);
-	if (ret < 0)
-		return ret;
-
+	if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_set_ref_clk_cycles\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_setup_ext_lna(phy, &pd->elna_ctrl);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_setup_ext_lna\r\n");
+        return ret;
+    }
+    
 	/*
 	 * This allows forcing a lower F_REF window
 	 * (worse phase noise, better fractional spurs)
@@ -5016,68 +5028,76 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 					 MIN_SYNTH_FREF, MAX_SYNTH_FREF);
 
 	ref_freq = ad9361_ref_div_sel(refin_Hz, pd->trx_synth_max_fref);
-	if (!ref_freq)
-		return -EINVAL;
+	if (!ref_freq){
+        printf("ERROR: ad9361_setup: ad9361_ref_div_sel\r\n");
+        return -EINVAL;
+    }
 
 	ret = clk_set_rate(phy, phy->ref_clk_scale[RX_REFCLK], ref_freq);
 	if (ret < 0) {
-		dev_err(dev, "Failed to set RX Synth ref clock rate (%"PRId32")", ret);
+		printf("Failed to set RX Synth ref clock rate (%"PRId32")", ret);
 		return ret;
 	}
 
 	ret = clk_set_rate(phy, phy->ref_clk_scale[TX_REFCLK], ref_freq);
 	if (ret < 0) {
-		dev_err(dev, "Failed to set TX Synth ref clock rate (%"PRId32")", ret);
+		printf("Failed to set TX Synth ref clock rate (%"PRId32")", ret);
 		return ret;
 	}
 
 	ret = ad9361_txrx_synth_cp_calib(phy, ref_freq, false); /* RXCP */
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_txrx_synth_cp_calib rxcp\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_txrx_synth_cp_calib(phy, ref_freq, true); /* TXCP */
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_txrx_synth_cp_calib txcp\r\n");
+        return ret;
+    }
+    
 	phy->pdata->use_ext_rx_lo = 0;
 	phy->pdata->use_ext_tx_lo = 0;
 
 	ret = clk_set_rate(phy, phy->ref_clk_scale[RX_RFPLL], ad9361_to_clk(pd->rx_synth_freq));
 	if (ret < 0) {
-		dev_err(dev, "Failed to set RX Synth rate (%"PRId32")",
-			ret);
+		printf("Failed to set RX Synth rate (%"PRId32")",ret);
 		return ret;
 	}
 
 	ret = clk_prepare_enable(phy->clks[RX_REFCLK]);
 	if (ret < 0) {
-		dev_err(dev, "Failed to enable RX Synth ref clock (%"PRId32")", ret);
+		printf("Failed to enable RX Synth ref clock (%"PRId32")", ret);
 		return ret;
 	}
 
 	ret = clk_prepare_enable(phy->clks[RX_RFPLL]);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: clk_prepare_enable\r\n");
+        return ret;
+    }
+    
 	/* Skip quad cal here we do it later again */
 	phy->last_tx_quad_cal_freq = pd->tx_synth_freq;
 	ret = clk_set_rate(phy, phy->ref_clk_scale[TX_RFPLL], ad9361_to_clk(pd->tx_synth_freq));
 	if (ret < 0) {
-		dev_err(dev, "Failed to set TX Synth rate (%"PRId32")",
-			ret);
+		printf("Failed to set TX Synth rate (%"PRId32")", ret);
 		return ret;
 	}
 
 	ret = clk_prepare_enable(phy->clks[TX_REFCLK]);
 	if (ret < 0) {
-		dev_err(dev, "Failed to enable TX Synth ref clock (%"PRId32")", ret);
+		printf("Failed to enable TX Synth ref clock (%"PRId32")", ret);
 		return ret;
 	}
 
 	ret = clk_prepare_enable(phy->clks[TX_RFPLL]);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: clk_prepare_enable\r\n");
+        return ret;
+    }
+    
 	phy->pdata->use_ext_rx_lo = tmp_use_ext_rx_lo;
 	phy->pdata->use_ext_tx_lo = tmp_use_ext_tx_lo;
 
@@ -5088,99 +5108,132 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 		pd->use_ext_tx_lo);
 
 	ret = ad9361_load_mixer_gm_subtable(phy);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_load_mixer_gm_subtable\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_gc_setup(phy, &pd->gain_ctrl);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_gc_setup\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_rx_bb_analog_filter_calib(phy,
 		real_rx_bandwidth,
 		bbpll_freq);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_rx_bb_analog_filter_calib\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_tx_bb_analog_filter_calib(phy,
 		real_tx_bandwidth,
 		bbpll_freq);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_tx_bb_analog_filter_calib\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_rx_tia_calib(phy, real_rx_bandwidth);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_rx_tia_calib\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_tx_bb_second_filter_calib(phy, real_tx_bandwidth);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_tx_bb_second_filter_calib\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_rx_adc_setup(phy,
 		bbpll_freq,
 		clk_get_rate(phy, phy->ref_clk_scale[ADC_CLK]));
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_rx_adc_setup\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_bb_dc_offset_calib(phy);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_bb_dc_offset_calib\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_rf_dc_offset_calib(phy,
 		ad9361_from_clk(clk_get_rate(phy, phy->ref_clk_scale[RX_RFPLL])));
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_rf_dc_offset_calib\r\n");
+        return ret;
+    }
+    
 	phy->current_rx_bw_Hz = pd->rf_rx_bandwidth_Hz;
 	phy->current_tx_bw_Hz = pd->rf_tx_bandwidth_Hz;
 	phy->last_tx_quad_cal_phase = ~0;
 	ret = ad9361_tx_quad_calib(phy, real_rx_bandwidth, real_tx_bandwidth, -1);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_tx_quad_calib\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_tracking_control(phy, phy->bbdc_track_en,
 		phy->rfdc_track_en, phy->quad_track_en);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_tracking_control\r\n");
+        return ret;
+    }
+    
 	if (!pd->fdd)
 		ad9361_run_calibration(phy, TXMON_CAL);
 
 	ad9361_pp_port_setup(phy, true);
 
 	ret = ad9361_set_ensm_mode(phy, pd->fdd, pd->ensm_pin_ctrl);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_set_ensm_mode\r\n");
+        return ret;
+    }
+    
 	ad9361_spi_writef(phy->spi, REG_TX_ATTEN_OFFSET,
 		MASK_CLR_ATTEN_UPDATE, 0);
 
 	ret = ad9361_set_tx_atten(phy, pd->tx_atten,
 			pd->rx2tx2 ? true : pd->rx1tx1_mode_use_tx_num == 1,
 			pd->rx2tx2 ? true : pd->rx1tx1_mode_use_tx_num == 2, true);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_set_tx_atten 1\r\n");
+        return ret;
+    }
+    
 	if (!pd->rx2tx2) {
 		ret = ad9361_set_tx_atten(phy, 89750,
 				pd->rx1tx1_mode_use_tx_num == 2,
 				pd->rx1tx1_mode_use_tx_num == 1, true);
-		if (ret < 0)
-			return ret;
+        if (ret < 0){        
+            printf("ERROR: ad9361_setup: ad9361_set_tx_atten 2\r\n");
+            return ret;
+        }
 	}
 
 	ret = ad9361_rssi_setup(phy, &pd->rssi_ctrl, false);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_rssi_setup\r\n");
+        return ret;
+    }
+    
 	ret = ad9361_clkout_control(phy, pd->ad9361_clkout_mode);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_clkout_control\r\n");
+        return ret;
+    }
 
 	ret = ad9361_txmon_setup(phy, &pd->txmon_ctrl);
-	if (ret < 0)
-		return ret;
-
+    if (ret < 0){        
+        printf("ERROR: ad9361_setup: ad9361_txmon_setup\r\n");
+        return ret;
+    }
+    
 	phy->curr_ensm_state = ad9361_spi_readf(spi, REG_STATE, ENSM_STATE(~0));
 	ad9361_ensm_set_state(phy, pd->fdd ? ENSM_STATE_FDD : ENSM_STATE_RX,
 		pd->ensm_pin_ctrl);
@@ -5188,6 +5241,8 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 	phy->auto_cal_en = true;
 	phy->cal_threshold_freq = 100000000ULL; /* 100 MHz */
 
+    printf("ad9361_setup completed successfully!\r\n");
+    
 	return 0;
 
 }
@@ -5206,8 +5261,7 @@ int32_t ad9361_do_calib_run(struct ad9361_rf_phy *phy, uint32_t cal, int32_t arg
 	dev_dbg(&phy->spi->dev, "%s: CAL %"PRIu32" ARG %"PRId32, __func__, cal, arg);
 
 	ret = ad9361_tracking_control(phy, false, false, false);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ad9361_ensm_force_state(phy, ENSM_STATE_ALERT);
 
@@ -5245,26 +5299,22 @@ int32_t ad9361_update_rf_bandwidth(struct ad9361_rf_phy *phy,
 	int32_t ret;
 
 	ret = ad9361_tracking_control(phy, false, false, false);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ad9361_ensm_force_state(phy, ENSM_STATE_ALERT);
 
 	ret = __ad9361_update_rf_bandwidth(phy, rf_rx_bw, rf_tx_bw);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	phy->current_rx_bw_Hz = rf_rx_bw;
 	phy->current_tx_bw_Hz = rf_tx_bw;
 
 	ret = ad9361_tx_quad_calib(phy, rf_rx_bw / 2, rf_tx_bw / 2, -1);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ret = ad9361_tracking_control(phy, phy->bbdc_track_en,
 		phy->rfdc_track_en, phy->quad_track_en);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	ad9361_ensm_restore_prev_state(phy);
 
@@ -5322,7 +5372,7 @@ static int32_t ad9361_verify_fir_filter_coef(struct ad9361_rf_phy *phy,
 			(ad9361_spi_read(spi, REG_TX_FILTER_COEF_READ_DATA_2 + offs) << 8);
 
 			if (tmp != coef[val]) {
-				dev_err(&phy->spi->dev,"%s%"PRIu32" read verify failed TAP%"PRIu32" %d =! %d",
+				printf("%s%"PRIu32" read verify failed TAP%"PRIu32" %d =! %d",
 					(dest & FIR_IS_RX) ? "RX" : "TX", sel,
 					val, tmp, coef[val]);
 				ret = -EIO;
@@ -5355,12 +5405,10 @@ int32_t ad9361_load_fir_filter_coef(struct ad9361_rf_phy *phy,
 	struct spi_device *spi = phy->spi;
 	uint32_t val, offs = 0, fir_conf = 0, fir_enable = 0;
 
-	dev_dbg(&phy->spi->dev, "%s: TAPS %"PRIu32", gain %"PRId32", dest %d",
-		__func__, ntaps, gain_dB, dest);
-
+	dev_dbg(&phy->spi->dev, "%s: TAPS %"PRIu32", gain %"PRId32", dest %d",__func__, ntaps, gain_dB, dest);    
+    
 	if (coef == NULL || !ntaps || ntaps > 128 || ntaps % 16) {
-		dev_err(&phy->spi->dev,
-			"%s: Invalid parameters: TAPS %"PRIu32", gain %"PRId32", dest 0x%X",
+		printf("%s: Invalid parameters: TAPS %"PRIu32", gain %"PRId32", dest 0x%X",
 			__func__, ntaps, gain_dB, dest);
 
 		return -EINVAL;
@@ -5587,8 +5635,7 @@ int32_t ad9361_parse_fir(struct ad9361_rf_phy *phy,
 		ret = -EINVAL;
 	}
 
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	if (!(rrx | rtx))
 		phy->filt_valid = true;
@@ -5614,16 +5661,14 @@ int32_t ad9361_validate_enable_fir(struct ad9361_rf_phy *phy)
 	if (!phy->bypass_tx_fir) {
 		if (!(phy->tx_fir_int == 1 || phy->tx_fir_int == 2 ||
 			phy->tx_fir_int == 4)) {
-			dev_err(dev,
-				"%s: Invalid: Interpolation %d in filter config",
+			printf("%s: Invalid: Interpolation %d in filter config",
 				__func__, phy->tx_fir_int);
 			return -EINVAL;
 		}
 
 
 		if (phy->tx_fir_int == 1 && phy->tx_fir_ntaps > 64) {
-			dev_err(dev,
-				"%s: Invalid: TAPS > 64 and Interpolation = 1",
+			printf("%s: Invalid: TAPS > 64 and Interpolation = 1",
 				__func__);
 			return -EINVAL;
 		}
@@ -5632,8 +5677,7 @@ int32_t ad9361_validate_enable_fir(struct ad9361_rf_phy *phy)
 	if (!phy->bypass_rx_fir) {
 		if (!(phy->rx_fir_dec == 1 || phy->rx_fir_dec == 2 ||
 			phy->rx_fir_dec == 4)) {
-			dev_err(dev,
-				"%s: Invalid: Decimation %d in filter config",
+			printf("%s: Invalid: Decimation %d in filter config",
 				__func__, phy->rx_fir_dec);
 
 			return -EINVAL;
@@ -5646,8 +5690,7 @@ int32_t ad9361_validate_enable_fir(struct ad9361_rf_phy *phy)
 			phy->rate_governor, rx, tx);
 		if (ret < 0) {
 			min = phy->rate_governor ? 1500000U : 1000000U;
-			dev_err(dev,
-				"%s: Calculating filter rates failed %"PRId32
+			printf("%s: Calculating filter rates failed %"PRId32
 				" using min frequency",__func__, ret);
 				ret = ad9361_calculate_rf_clock_chain(phy, min,
 					phy->rate_governor, rx, tx);
@@ -5689,8 +5732,7 @@ int32_t ad9361_validate_enable_fir(struct ad9361_rf_phy *phy)
 	if (!phy->bypass_tx_fir) {
 		max = (tx[DAC_FREQ] / tx[TX_SAMPL_FREQ]) * 16;
 		if (phy->tx_fir_ntaps > max) {
-			dev_err(dev,
-				"%s: Invalid: ratio ADC/2 / TX_SAMPL * 16 > TAPS"
+			printf("%s: Invalid: ratio ADC/2 / TX_SAMPL * 16 > TAPS"
 				"(max %"PRIu32", adc %"PRIu32", tx %"PRIu32")",
 				__func__, max, rx[ADC_FREQ], tx[TX_SAMPL_FREQ]);
 			return -EINVAL;
@@ -5701,16 +5743,14 @@ int32_t ad9361_validate_enable_fir(struct ad9361_rf_phy *phy)
 		max = ((rx[ADC_FREQ] / ((rx[ADC_FREQ] == rx[R2_FREQ]) ? 1 : 2)) /
 				rx[RX_SAMPL_FREQ]) * 16;
 		if (phy->rx_fir_ntaps > max) {
-			dev_err(dev,
-				"%s: Invalid: ratio ADC/2 / RX_SAMPL * 16 > TAPS (max %"PRIu32")",
+			printf("%s: Invalid: ratio ADC/2 / RX_SAMPL * 16 > TAPS (max %"PRIu32")",
 				__func__, max);
 			return -EINVAL;
 		}
 	}
 
 	ret = ad9361_set_trx_clock_chain(phy, rx, tx);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	/* See also: ad9361_set_trx_clock_chain() */
 	if (!phy->pdata->dig_interface_tune_fir_disable &&
@@ -5877,8 +5917,7 @@ static int32_t ad9361_set_clk_scaler(struct refclk_scale *clk_priv, bool set)
 	switch (clk_priv->source) {
 	case BB_REFCLK:
 		ret = ad9361_to_refclk_scaler(clk_priv);
-		if (ret < 0)
-			return ret;
+		if (ret < 0) return ret;
 		if (set)
 			return ad9361_spi_writef(spi, REG_CLOCK_CTRL,
 						REF_FREQ_SCALER(~0), ret);
@@ -5886,8 +5925,7 @@ static int32_t ad9361_set_clk_scaler(struct refclk_scale *clk_priv, bool set)
 
 	case RX_REFCLK:
 		ret = ad9361_to_refclk_scaler(clk_priv);
-		if (ret < 0)
-			return ret;
+		if (ret < 0) return ret;
 		if (set) {
 			tmp = ret;
 			ret = ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_1,
@@ -5899,8 +5937,7 @@ static int32_t ad9361_set_clk_scaler(struct refclk_scale *clk_priv, bool set)
 		break;
 	case TX_REFCLK:
 		ret = ad9361_to_refclk_scaler(clk_priv);
-		if (ret < 0)
-			return ret;
+		if (ret < 0) return ret;
 		if (set)
 			return ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_2,
 			TX_REF_DIVIDER(~0), ret);
@@ -6037,15 +6074,14 @@ int32_t ad9361_clk_factor_round_rate(struct refclk_scale *clk_priv, uint32_t rat
 		clk_priv->div = DIV_ROUND_CLOSEST(*prate, rate);
 		clk_priv->mult = 1;
 		if (!clk_priv->div) {
-			dev_err(&clk_priv->spi->dev, "%s: divide by zero",
+			printf( "%s: divide by zero",
 				__func__);
 			clk_priv->div = 1;
 		}
 	}
 
 	ret = ad9361_set_clk_scaler(clk_priv, false);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	return (*prate / clk_priv->div) * clk_priv->mult;
 }
@@ -6071,7 +6107,7 @@ int32_t ad9361_clk_factor_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 		clk_priv->div = DIV_ROUND_CLOSEST(parent_rate, rate);
 		clk_priv->mult = 1;
 		if (!clk_priv->div) {
-			dev_err(&clk_priv->spi->dev, "%s: divide by zero",
+			printf("%s: divide by zero",
 				__func__);
 			clk_priv->div = 1;
 		}
@@ -6387,8 +6423,7 @@ int32_t ad9361_rfpll_int_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 
 	ret = ad9361_calc_rfpll_int_divder(ad9361_from_clk(rate), parent_rate,
 		&integer, &fract, &vco_div, &vco);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) return ret;
 
 	switch (clk_priv->source) {
 	case RX_RFPLL_INT:
@@ -6620,8 +6655,7 @@ int32_t ad9361_rfpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate)
 		}
 		/* Load Gain Table */
 		ret = ad9361_load_gt(phy, ad9361_from_clk(rate), GT_RX1 + GT_RX2);
-		if (ret < 0)
-			return ret;
+		if (ret < 0) return ret;
 		break;
 	case TX_RFPLL:
 		if (phy->pdata->use_ext_tx_lo) {
@@ -6640,9 +6674,7 @@ int32_t ad9361_rfpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate)
 			if (abs((int64_t)(phy->last_tx_quad_cal_freq - ad9361_from_clk(rate))) >
 				(int64_t)phy->cal_threshold_freq) {
 				ret = ad9361_do_calib_run(phy, TX_QUAD_CAL, -1);
-				if (ret < 0)
-					dev_err(&phy->spi->dev,
-					"%s: TX QUAD cal failed", __func__);
+				if (ret < 0) printf("%s: TX QUAD cal failed", __func__);
 				phy->last_tx_quad_cal_freq = ad9361_from_clk(rate);
 			}
 		break;
@@ -6677,6 +6709,11 @@ int32_t ad9361_clk_mux_set_parent(struct refclk_scale *clk_priv, uint8_t index)
 	return ret;
 }
 
+//24 bytes per clock, 20 clocks
+char refclk_scale_clks_buf[512];
+//8 bytes per clock
+char clk_register_buf[10*20];
+
 /**
  * Register and initialize a new clock.
  * @param phy The AD9361 state structure.
@@ -6691,9 +6728,15 @@ static struct clk *ad9361_clk_register(struct ad9361_rf_phy *phy, const char *na
 	const char *parent_name, uint32_t flags,
 	uint32_t source, uint32_t parent_source)
 {
+    static uint8_t call_count = 0;
 	struct refclk_scale *clk_priv;
-	struct clk *clk;
-
+	struct clk *clk;    
+    
+    if(call_count == 0){
+        memset(refclk_scale_clks_buf,0,sizeof(refclk_scale_clks_buf));
+        memset(clk_register_buf,0,sizeof(clk_register_buf));
+    }
+    
 	if (name) {
 		// Unused variable - fix compiler warning
 	}
@@ -6704,9 +6747,13 @@ static struct clk *ad9361_clk_register(struct ad9361_rf_phy *phy, const char *na
 		// Unused variable - fix compiler warning
 	}
 
-	clk_priv = (struct refclk_scale *)malloc(sizeof(*clk_priv));
+    //printf("malloc refclk_scale: %d to offset %d of refclk_scale_clks_buf\r\n",sizeof(struct refclk_scale),call_count*25);
+    //printf("num clocks: %d\r\n",NUM_AD9361_CLKS);
+    clk_priv = (struct refclk_scale *)&refclk_scale_clks_buf[call_count*25];    
+
+	//clk_priv = (struct refclk_scale *)malloc(sizeof(*clk_priv));
 	if (!clk_priv) {
-		dev_err(&phy->spi->dev, "ad9361_clk_register: could not allocate fixed factor clk");
+		printf( "ad9361_clk_register: could not allocate fixed factor clk\r\n");
 		return (struct clk *)ERR_PTR(-ENOMEM);
 	}
 
@@ -6718,7 +6765,10 @@ static struct clk *ad9361_clk_register(struct ad9361_rf_phy *phy, const char *na
 
 	phy->ref_clk_scale[source] = clk_priv;
 
-	clk = (struct clk *)malloc(sizeof(*clk));
+    //printf("malloc clk: %d to offset %d of clk_register_buf\r\n",sizeof(struct clk),call_count*10);
+    clk = (struct clk *)&clk_register_buf[call_count*10];
+    call_count++;
+	//clk = (struct clk *)malloc(sizeof(*clk));
 	if (!clk) {
 		free(clk_priv);
 		return (struct clk *)ERR_PTR(-ENOMEM);
@@ -6789,6 +6839,8 @@ static struct clk *ad9361_clk_register(struct ad9361_rf_phy *phy, const char *na
 	return clk;
 }
 
+char clks_buf[120];
+
 /**
  * Register and initialize all the system clocks.
  * @param phy The AD9361 state structure.
@@ -6796,14 +6848,16 @@ static struct clk *ad9361_clk_register(struct ad9361_rf_phy *phy, const char *na
  */
 int32_t register_clocks(struct ad9361_rf_phy *phy)
 {
-	uint32_t flags = CLK_GET_RATE_NOCACHE;
-
-	phy->clk_data.clks = (struct clk **)malloc(sizeof(*phy->clk_data.clks) *
-		NUM_AD9361_CLKS);
+	uint32_t flags = CLK_GET_RATE_NOCACHE;    
+    //printf("sizeof(*phy->clk_data.clks): %d\r\n",sizeof(*phy->clk_data.clks));
+    //printf("sizeof(*phy->clk_data.clks) * NUM_AD9361_CLKS: %d\r\n",sizeof(*phy->clk_data.clks) * NUM_AD9361_CLKS);
+    memset(clks_buf,0,sizeof(clks_buf));
+	phy->clk_data.clks = (struct clk **)&clks_buf[0];    
+    /*phy->clk_data.clks = (struct clk **)malloc(sizeof(*phy->clk_data.clks) * NUM_AD9361_CLKS);
 	if (!phy->clk_data.clks) {
-		dev_err(&phy->spi->dev, "could not allocate memory");
+		printf( "could not allocate memory");
 		return -ENOMEM;
-	}
+	}*/
 
 	phy->clk_data.clk_num = NUM_AD9361_CLKS;
 
@@ -6908,8 +6962,7 @@ int32_t register_clocks(struct ad9361_rf_phy *phy)
 	phy->clks[TX_RFPLL] = ad9361_clk_register(phy,
 		"tx_rfpll", NULL,
 		flags | CLK_IGNORE_UNUSED,
-		TX_RFPLL, 0);
-
+		TX_RFPLL, 0);    
 	return 0;
 }
 
