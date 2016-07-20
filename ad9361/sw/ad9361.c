@@ -4765,10 +4765,9 @@ int32_t ad9361_setup(struct ad9361_rf_phy *phy)
 
 	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_1, RX_REF_RESET_BAR, 1);
 	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_2, TX_REF_RESET_BAR, 1);
-	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_2,
-		TX_REF_DOUBLER_FB_DELAY(~0), 3); /* FB DELAY */
-	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_2,
-		RX_REF_DOUBLER_FB_DELAY(~0), 3); /* FB DELAY */
+	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_2, TX_REF_DOUBLER_FB_DELAY(~0), 3); /* FB DELAY */
+    log_string("spi_writef,,,\n");
+	ad9361_spi_writef(spi, REG_REF_DIVIDE_CONFIG_2, RX_REF_DOUBLER_FB_DELAY(~0), 3); /* FB DELAY */
 
 	ad9361_spi_write(spi, REG_CLOCK_ENABLE,
 		DIGITAL_POWER_UP | CLOCK_ENABLE_DFLT | BBPLL_ENABLE |

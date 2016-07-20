@@ -1,7 +1,7 @@
 [Project]
 FileName=no_os_ad9361_c.dev
 Name=Project1
-UnitCount=17
+UnitCount=14
 Type=1
 Ver=2
 ObjFiles=
@@ -61,28 +61,8 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit5]
-FileName=ad9361_conv.c
-CompileCpp=0
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit6]
-FileName=adc_core.c
-CompileCpp=0
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
 [Unit7]
-FileName=adc_core.h
+FileName=main.c
 CompileCpp=0
 Folder=
 Compile=1
@@ -92,7 +72,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit8]
-FileName=common.h
+FileName=parameters.h
 CompileCpp=0
 Folder=
 Compile=1
@@ -100,19 +80,9 @@ Link=1
 Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
-
-[Unit9]
-FileName=config.h
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-CompileCpp=0
 
 [Unit10]
-FileName=dac_core.c
+FileName=platform.h
 Folder=
 Compile=1
 Link=1
@@ -122,7 +92,7 @@ BuildCmd=
 CompileCpp=0
 
 [Unit11]
-FileName=dac_core.h
+FileName=util.c
 Folder=
 Compile=1
 Link=1
@@ -132,7 +102,7 @@ BuildCmd=
 CompileCpp=0
 
 [Unit12]
-FileName=main.c
+FileName=util.h
 Folder=
 Compile=1
 Link=1
@@ -142,7 +112,7 @@ BuildCmd=
 CompileCpp=0
 
 [Unit13]
-FileName=parameters.h
+FileName=file_io.c
 Folder=
 Compile=1
 Link=1
@@ -152,17 +122,7 @@ BuildCmd=
 CompileCpp=0
 
 [Unit14]
-FileName=platform.c
-CompileCpp=0
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit15]
-FileName=platform.h
+FileName=file_io.h
 CompileCpp=0
 Folder=
 Compile=1
@@ -212,6 +172,36 @@ BuildCmd=
 
 [Unit17]
 FileName=util.h
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit6]
+FileName=config.h
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit9]
+FileName=platform.c
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit5]
+FileName=common.h
 CompileCpp=0
 Folder=
 Compile=1
