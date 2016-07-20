@@ -1772,9 +1772,9 @@ int32_t ad9361_get_trx_path_clks(struct ad9361_rf_phy *phy,
  * 				   MODE_2x2 (2)
  * @return 0 in case of success, negative error code otherwise.
  */
-int32_t ad9361_set_no_ch_mode(struct ad9361_rf_phy *phy, uint8_t no_ch_mode)
+int32_t ad9361_set_num_ch_mode(struct ad9361_rf_phy *phy, uint8_t num_ch_mode)
 {
-	switch (no_ch_mode) {
+	switch (num_ch_mode) {
 	case 1:
 		phy->pdata->rx2tx2 = 0;
 		break;

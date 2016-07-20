@@ -56,7 +56,7 @@
 #define REG_RX_CLOCK_DATA_DELAY			 0x006 /* Rx Clock & Data  Delay */
 #define REG_TX_CLOCK_DATA_DELAY			 0x007 /* Tx Clock & Data Delay */
 #define REG_CLOCK_ENABLE				 0x009 /* Clock Enable */
-#define REG_BBPLL				 0x00A /* BBPLL */
+#define REG_BBPLL				 0x00A /* BBPLL */ //Clock output mode
 #define REG_TEMP_OFFSET				 0x00B /* Offset */
 #define REG_START_TEMP_READING			 0x00C /* Start Temp Reading */
 #define REG_TEMP_SENSE2				 0x00D /* Temp Sense2 */
