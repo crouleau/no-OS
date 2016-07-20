@@ -5990,8 +5990,7 @@ static int32_t ad9361_set_clk_scaler(struct refclk_scale *clk_priv, bool set)
 		if (clk_priv->mult != 1 || clk_priv->div > 2 || clk_priv->div < 1)
 			return -EINVAL;
 		if (set)
-			return ad9361_spi_writef(spi, REG_BBPLL,
-			BIT(3), clk_priv->div - 1);
+			return ad9361_spi_writef(spi, REG_BBPLL, BIT(3), clk_priv->div - 1);
 		break;
 	case T2_CLK:
 		if (clk_priv->mult != 1 || clk_priv->div > 3 || clk_priv->div < 1)
