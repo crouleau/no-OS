@@ -376,7 +376,7 @@ int main(void)
 
 	default_init_param.gpio_resetb = GPIO_RESET_PIN;
 
-    #ifdef FMCOMMS5
+    #ifdef FMCOMMS5 //naw
         default_init_param.gpio_sync = GPIO_SYNC_PIN;
         default_init_param.gpio_cal_sw1 = GPIO_CAL_SW1_PIN;
         default_init_param.gpio_cal_sw2 = GPIO_CAL_SW2_PIN;
@@ -442,38 +442,8 @@ int main(void)
         ad9361_set_rx_fir_config(ad9361_phy_b, rx_fir_config);
     #endif
 
-    #ifndef AXI_ADC_NOT_PRESENT
-        #if defined XILINX_PLATFORM || defined LINUX_PLATFORM
-            #ifdef DAC_DMA
-                #ifdef FMCOMMS5
-                    dac_init(ad9361_phy_b, DATA_SEL_DMA, 0);
-                #endif
-                printf("starting dac_init\r\n");
-                dac_init(ad9361_phy, DATA_SEL_DMA, 1);
-                printf("done with dac_init\r\n");
-            #else
-                #ifdef FMCOMMS5
-                    dac_init(ad9361_phy_b, DATA_SEL_DDS, 0);
-                #endif
-                    dac_init(ad9361_phy, DATA_SEL_DDS, 1);
-                #endif
-            #endif
-    #endif
-
-    #ifdef FMCOMMS5
+    #ifdef FMCOMMS5 //no
         ad9361_do_mcs(ad9361_phy, ad9361_phy_b);
-    #endif
-
-    #ifndef AXI_ADC_NOT_PRESENT
-        #if defined XILINX_PLATFORM && defined CAPTURE_SCRIPT
-            // NOTE: To prevent unwanted data loss, it's recommended to invalidate
-            // cache after each adc_capture() call, keeping in mind that the
-            // size of the capture and the start address must be alinged to the size
-            // of the cache line.
-            mdelay(1000);
-            adc_capture(16384, ADC_DDR_BASEADDR);
-            Xil_DCacheInvalidateRange(ADC_DDR_BASEADDR, 16384);
-        #endif
     #endif
 
 printf("\r\n");
