@@ -46,7 +46,7 @@
 #include "platform.h"
 #include "config.h"
 
-#ifndef AXI_ADC_NOT_PRESENT
+#ifndef AXI_ADC_NOT_PRESENT //looks like this entire file is not needed with the AXI ADC not here...
 /**
  * HDL loopback enable/disable.
  * @param phy The AD9361 state structure.

@@ -60,7 +60,7 @@
 //#define PICOZED_SDR
 //#define PICOZED_SDR_CMOS
 //#define CAPTURE_SCRIPT
-//#define AXI_ADC_NOT_PRESENT
+#define AXI_ADC_NOT_PRESENT //We ditched all the AXI IP, this probably works (TODO: Look at all the defines to be sure)
 
 #define DAC_DMA //Define this to use the sine_lut, possibly modifies other stuff too
 

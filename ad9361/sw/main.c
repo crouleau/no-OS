@@ -368,7 +368,7 @@ struct ad9361_rf_phy *ad9361_phy_b;
 int main(void)
 {
 #ifdef XILINX_PLATFORM
-	Xil_ICacheEnable();
+	Xil_ICacheEnable(); //Not sure what this does or if it's needed
 	Xil_DCacheEnable();
 #endif
 
@@ -381,6 +381,12 @@ int main(void)
 
 	// NOTE: The user has to choose the GPIO numbers according to desired
 	// carrier board.
+
+    // ************* GPIO SETUP ************** //
+
+    //TODO: GPIO_RESET_PIN -- Figure out what this pin should be, and why things work without it being set to the correct thing.... *shrugs*
+    //it doesn't seem to be hooked up to anything at all. According to schematics, RESETB on the AD9364 is hooked up to LA28_P, which is AK27 in the HPC
+    //NOTE: There are other pins that are correctly hooked up - "AF20" is "rx_clk_in_p" on the ML605 which corresponds to DATA_CLK_P form the AD9364
 	default_init_param.gpio_resetb = GPIO_RESET_PIN;
 #ifdef FMCOMMS5
 	default_init_param.gpio_sync = GPIO_SYNC_PIN;
@@ -396,108 +402,84 @@ int main(void)
 #ifdef LINUX_PLATFORM
 	gpio_init(default_init_param.gpio_resetb);
 #else
-	gpio_init(GPIO_DEVICE_ID);
+	gpio_init(GPIO_DEVICE_ID); //XPAR_PS7_GPIO_0_DEVICE_ID -- should set up all gpio to use axi_gpio_0. Not sure this makes sense, since it seems to be hooked up to the LCD
 #endif
-	gpio_direction(default_init_param.gpio_resetb, 1);
+	gpio_direction(default_init_param.gpio_resetb, 1); //sets to an output
+
+    // ************* DONE WITH GPIO SETUP ************** //
 
 	spi_init(SPI_DEVICE_ID, 1, 0);
 
-#if defined FMCOMMS5 || defined PICOZED_SDR || defined PICOZED_SDR_CMOS
+#if defined FMCOMMS5 || defined PICOZED_SDR || defined PICOZED_SDR_CMOS //naw dude
 	default_init_param.xo_disable_use_ext_refclk_enable = 1;
 #endif
 
-#ifdef PICOZED_SDR_CMOS
+#ifdef PICOZED_SDR_CMOS //naw
 	default_init_param.lvds_rx_onchip_termination_enable = 0;
 	default_init_param.lvds_mode_enable = 0;
 	default_init_param.full_port_enable = 1;
 	default_init_param.digital_interface_tune_fir_disable = 1;
 #endif
 
+    //initialize... TODO: Find anything that's not SPI and purge it!
 	ad9361_init(&ad9361_phy, &default_init_param);
 
-	ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
+
+	ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config); //Seems to be necessary - There's no FIR in the AD HDL core, and there are a bunch of SPI writes here. Would make sense that it's on the AD9364 itself
 	ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
 
-#ifdef FMCOMMS5
-#ifdef LINUX_PLATFORM
-	gpio_init(default_init_param.gpio_sync);
-#endif
-	gpio_direction(default_init_param.gpio_sync, 1);
-	default_init_param.id_no = 1;
-	default_init_param.gpio_resetb = GPIO_RESET_PIN_2;
-#ifdef LINUX_PLATFORM
-	gpio_init(default_init_param.gpio_resetb);
-#endif
-	default_init_param.gpio_sync = -1;
-	default_init_param.gpio_cal_sw1 = -1;
-	default_init_param.gpio_cal_sw2 = -1;
-	default_init_param.rx_synthesizer_frequency_hz = 2300000000UL;
-	default_init_param.tx_synthesizer_frequency_hz = 2300000000UL;
-	gpio_direction(default_init_param.gpio_resetb, 1);
-	ad9361_init(&ad9361_phy_b, &default_init_param);
+#ifdef FMCOMMS5 //naw.... peace
+    #ifdef LINUX_PLATFORM
+        gpio_init(default_init_param.gpio_sync);
+    #endif
+        gpio_direction(default_init_param.gpio_sync, 1);
+        default_init_param.id_no = 1;
+        default_init_param.gpio_resetb = GPIO_RESET_PIN_2;
+    #ifdef LINUX_PLATFORM
+        gpio_init(default_init_param.gpio_resetb);
+    #endif
+        default_init_param.gpio_sync = -1;
+        default_init_param.gpio_cal_sw1 = -1;
+        default_init_param.gpio_cal_sw2 = -1;
+        default_init_param.rx_synthesizer_frequency_hz = 2300000000UL;
+        default_init_param.tx_synthesizer_frequency_hz = 2300000000UL;
+        gpio_direction(default_init_param.gpio_resetb, 1);
+        ad9361_init(&ad9361_phy_b, &default_init_param);
 
-	ad9361_set_tx_fir_config(ad9361_phy_b, tx_fir_config);
-	ad9361_set_rx_fir_config(ad9361_phy_b, rx_fir_config);
+        ad9361_set_tx_fir_config(ad9361_phy_b, tx_fir_config);
+        ad9361_set_rx_fir_config(ad9361_phy_b, rx_fir_config);
 #endif
 
-#ifndef AXI_ADC_NOT_PRESENT
-#if defined XILINX_PLATFORM || defined LINUX_PLATFORM
-#ifdef DAC_DMA
-#ifdef FMCOMMS5
-	dac_init(ad9361_phy_b, DATA_SEL_DMA, 0);
-#endif
-	dac_init(ad9361_phy, DATA_SEL_DMA, 1);
-#else
-#ifdef FMCOMMS5
-	dac_init(ad9361_phy_b, DATA_SEL_DDS, 0);
-#endif
-	dac_init(ad9361_phy, DATA_SEL_DDS, 1);
-#endif
-#endif
+#ifndef AXI_ADC_NOT_PRESENT //naw, don't need this
+    #if defined XILINX_PLATFORM || defined LINUX_PLATFORM
+    #ifdef DAC_DMA
+    #ifdef FMCOMMS5
+        dac_init(ad9361_phy_b, DATA_SEL_DMA, 0);
+    #endif
+        dac_init(ad9361_phy, DATA_SEL_DMA, 1);
+    #else
+    #ifdef FMCOMMS5
+        dac_init(ad9361_phy_b, DATA_SEL_DDS, 0);
+    #endif
+        dac_init(ad9361_phy, DATA_SEL_DDS, 1);
+    #endif
+    #endif
 #endif
 
 #ifdef FMCOMMS5
 	ad9361_do_mcs(ad9361_phy, ad9361_phy_b);
 #endif
 
-#ifndef AXI_ADC_NOT_PRESENT
-#if defined XILINX_PLATFORM && defined CAPTURE_SCRIPT
-    // NOTE: To prevent unwanted data loss, it's recommended to invalidate
-    // cache after each adc_capture() call, keeping in mind that the
-    // size of the capture and the start address must be alinged to the size
-    // of the cache line.
-	mdelay(1000);
-    adc_capture(16384, ADC_DDR_BASEADDR);
-    Xil_DCacheInvalidateRange(ADC_DDR_BASEADDR, 16384);
-#endif
-#endif
-
-#ifdef CONSOLE_COMMANDS
-	get_help(NULL, 0);
-
-	while(1)
-	{
-		console_get_command(received_cmd);
-		invalid_cmd = 0;
-		for(cmd = 0; cmd < cmd_no; cmd++)
-		{
-			param_no = 0;
-			cmd_type = console_check_commands(received_cmd, cmd_list[cmd].name,
-											  param, &param_no);
-			if(cmd_type == UNKNOWN_CMD)
-			{
-				invalid_cmd++;
-			}
-			else
-			{
-				cmd_list[cmd].function(param, param_no);
-			}
-		}
-		if(invalid_cmd == cmd_no)
-		{
-			console_print("Invalid command!\n");
-		}
-	}
+#ifndef AXI_ADC_NOT_PRESENT //don't need this
+    #if defined XILINX_PLATFORM && defined CAPTURE_SCRIPT
+        // NOTE: To prevent unwanted data loss, it's recommended to invalidate
+        // cache after each adc_capture() call, keeping in mind that the
+        // size of the capture and the start address must be alinged to the size
+        // of the cache line.
+        mdelay(1000);
+        adc_capture(16384, ADC_DDR_BASEADDR);
+        Xil_DCacheInvalidateRange(ADC_DDR_BASEADDR, 16384);
+    #endif
 #endif
 
 	printf("Done.\n");

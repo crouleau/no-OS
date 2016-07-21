@@ -116,23 +116,6 @@
 /* PCORE Version > 8.00 */
 #define ADI_REG_DELAY(l)			(0x0800 + (l) * 0x4)
 
-enum adc_pn_sel {
-	ADC_PN9 = 0,
-	ADC_PN23A = 1,
-	ADC_PN7 = 4,
-	ADC_PN15 = 5,
-	ADC_PN23 = 6,
-	ADC_PN31 = 7,
-	ADC_PN_CUSTOM = 9,
-	ADC_PN_END = 10,
-};
-
-enum adc_data_sel {
-	ADC_DATA_SEL_NORM,
-	ADC_DATA_SEL_LB, /* DAC loopback */
-	ADC_DATA_SEL_RAMP, /* TBD */
-};
-
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
@@ -152,10 +135,4 @@ void gpio_set_value(unsigned gpio, int value);
 void udelay(unsigned long usecs);
 void mdelay(unsigned long msecs);
 unsigned long msleep_interruptible(unsigned int msecs);
-void axiadc_init(struct ad9361_rf_phy *phy);
-int axiadc_post_setup(struct ad9361_rf_phy *phy);
-unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg);
-void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val);
-int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel);
-void axiadc_idelay_set(struct axiadc_state *st, unsigned lane, unsigned val);
 #endif
