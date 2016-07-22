@@ -45,34 +45,13 @@
 #include <stdint.h>
 #include "parameters.h"
 #include "platform.h"
-#ifdef CONSOLE_COMMANDS
-#include "console_commands\command.h"
-#include "console_commands\console.h"
-#endif
 #ifdef XILINX_PLATFORM
 #include <xil_cache.h>
-#endif
-#if defined XILINX_PLATFORM || defined LINUX_PLATFORM
-#include "adc_core.h"
-#include "dac_core.h"
 #endif
 
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
 /******************************************************************************/
-#ifdef CONSOLE_COMMANDS
-extern command	  	cmd_list[];
-extern char			cmd_no;
-extern cmd_function	cmd_functions[11];
-unsigned char		cmd				 =  0;
-double				param[5]		 = {0, 0, 0, 0, 0};
-char				param_no		 =  0;
-int					cmd_type		 = -1;
-char				invalid_cmd		 =  0;
-char				received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-										0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-										0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#endif
 
 AD9361_InitParam default_init_param = {
 	/* Identification number */
