@@ -89,25 +89,29 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	struct ad9361_rf_phy *phy;
 	int32_t ret = 0;
 	int32_t rev = 0;
-	int32_t i   = 0;    
+	int32_t i   = 0;
 
     if(only_call_once == 0){
         only_call_once++;
     }else{
         printf("ERROR: ad9361_init called more than once!!!\r\n");
     }
-    
+
+    //********** START MALLOC a number of structs ***********//
+
+    //TODO: Go back to using actual malloc stuff... don't want to change it now since it seems to be working now that there's enough memory
+    //Also, add better error message for OOM problems (fail to malloc)
     memset(rf_phy_buf,0,sizeof(rf_phy_buf));
     memset(spi_device_buf,0,sizeof(spi_device_buf));
     memset(clk_refin_buf,0,sizeof(clk_refin_buf));
     memset(pdata_buf,0,sizeof(pdata_buf));
     memset(axiadc_converter_buf,0,sizeof(axiadc_converter_buf));
     memset(axiadc_state_buf,0,sizeof(axiadc_state_buf));
-    
-    //printf("malloc ad9361_rf_phy: %d\r\n", sizeof(struct ad9361_rf_phy));            
+
+    //printf("malloc ad9361_rf_phy: %d\r\n", sizeof(struct ad9361_rf_phy));
     phy = (struct ad9361_rf_phy *)&rf_phy_buf[0];
     //printf("initial phy->pdata->rf_rx_input_sel val: %d\r\n",(int)phy->pdata->rf_rx_input_sel);
-	/*phy = (struct ad9361_rf_phy *)zmalloc(sizeof(*phy));    
+	/*phy = (struct ad9361_rf_phy *)zmalloc(sizeof(*phy));
 	if (!phy) {
 		return -ENOMEM;
 	}*/
@@ -118,21 +122,21 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	if (!phy->spi) {
 		return -ENOMEM;
 	}*/
-    
-    //printf("malloc clk_refin: %d",sizeof(struct clk));	
+
+    //printf("malloc clk_refin: %d",sizeof(struct clk));
     phy->clk_refin = (struct clk *)&clk_refin_buf[0];
     /*phy->clk_refin = (struct clk *)zmalloc(sizeof(*phy->clk_refin));
 	if (!phy->clk_refin) {
 		return -ENOMEM;
 	}*/
-    
+
     //printf("malloc ad9361_phy_platform_data: %d",sizeof(struct ad9361_phy_platform_data));
     phy->pdata = (struct ad9361_phy_platform_data *)&pdata_buf[0];
 	/*phy->pdata = (struct ad9361_phy_platform_data *)zmalloc(sizeof(*phy->pdata));
 	if (!phy->pdata) {
 		return -ENOMEM;
 	}*/
-    
+
 #ifndef AXI_ADC_NOT_PRESENT
     //printf("malloc axiadc_converter: %d\r\n",sizeof(struct axiadc_converter));
 	phy->adc_conv = (struct axiadc_converter *)&axiadc_converter_buf[0];
@@ -140,16 +144,18 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	if (!phy->adc_conv) {
 		return -ENOMEM;
 	}*/
-    
+
     //printf("malloc axiadc_state: %d\r\n",sizeof(struct axiadc_state));
 	phy->adc_state = (struct axiadc_state *)&axiadc_state_buf[0];
 	/*phy->adc_state = (struct axiadc_state *)zmalloc(sizeof(*phy->adc_state));
 	if (!phy->adc_state) {
 		return -ENOMEM;
 	}*/
-    
+
 	phy->adc_state->phy = phy;
 #endif
+
+    //********** START POPULATE state struct with initial params ***********//
 
 	phy->spi->id_no = init_param->id_no;
 
@@ -435,8 +441,11 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	phy->bist_tone_level_dB = 0;
 	phy->bist_tone_mask = 0;
 
-	ad9361_reset(phy);
+    //********** DONE loading structs ***********//
 
+	ad9361_reset(phy); //not sure this works atm - don't think the GPIO is actually hooked up correctly in HDL
+
+    //Check the ID of the AD9364 (seems to work even though this is looking for the 9361 in theory - they're cross-compatible)
 	ret = ad9361_spi_read(phy->spi, REG_PRODUCT_ID);
 	if ((ret & PRODUCT_ID_MASK) != PRODUCT_ID_9361) {
 		printf("%s : Unsupported PRODUCT_ID 0x%X", "ad9361_init", (unsigned int)ret);
@@ -445,6 +454,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	}
 	rev = ret & REV_MASK;
 
+    //The AD9364 can only use one RX and TX channel
 	if (AD9364_DEVICE) {
 		phy->pdata->rx2tx2 = false;
 		phy->pdata->rx1tx1_mode_use_rx_num = 1;
@@ -455,6 +465,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	phy->ad9361_rfpll_ext_round_rate = init_param->ad9361_rfpll_ext_round_rate;
 	phy->ad9361_rfpll_ext_set_rate = init_param->ad9361_rfpll_ext_set_rate;
 
+    //Initialize all the clock data structures and calculate their dividers and such based on an exchange of info with the AD9364 via SPI
     printf("start register clocks \r\n");
 	ret = register_clocks(phy);
 	if (ret < 0){
@@ -463,27 +474,17 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
     }
     printf("finish register clocks\r\n");
 
-#ifndef AXI_ADC_NOT_PRESENT
-	axiadc_init(phy);
-	phy->adc_state->pcore_version = axiadc_read(phy->adc_state, ADI_REG_VERSION);
-#endif
-
+    //Initializes some gain tables information - does not write any updated gain table info (not supported)
+    //FEATURE: Support updateable gain tables!!!
 	ad9361_init_gain_tables(phy);
-    printf("ad9361_setup \r\n");
+
+    //This appears to be all SPI comms - which makes sense. If it's setting up the AD9364,
+    //then we would expect it all to be SPI since that's our only config interface to the AD9364
 	ret = ad9361_setup(phy);
 	if (ret < 0){
         printf("error: ad9361 setup failed!\r\n");
 		goto out;
     }
-
-#ifndef AXI_ADC_NOT_PRESENT
-	/* platform specific wrapper to call ad9361_post_setup() */
-	ret = axiadc_post_setup(phy);
-	if (ret < 0){
-        printf("error; axiadc_post_setup failed!\r\n");
-		goto out;
-    }
-#endif
 
 	printf("%s : AD9361 Rev %d successfully initialized\n", "ad9361_init", (int)rev);
 
@@ -1361,7 +1362,7 @@ int32_t ad9361_set_tx_sampling_freq (struct ad9361_rf_phy *phy,
 	if (ret < 0){
 		return ret;
     }
-    
+
 	ad9361_set_trx_clock_chain(phy, rx, tx);
 
 	ret = ad9361_update_rf_bandwidth(phy, phy->current_rx_bw_Hz,

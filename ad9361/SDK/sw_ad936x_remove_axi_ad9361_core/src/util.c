@@ -118,9 +118,7 @@ uint32_t clk_get_rate(struct ad9361_rf_phy *phy,
 /***************************************************************************//**
  * @brief clk_set_rate
 *******************************************************************************/
-int32_t clk_set_rate(struct ad9361_rf_phy *phy,
-					 struct refclk_scale *clk_priv,
-					 uint32_t rate)
+int32_t clk_set_rate(struct ad9361_rf_phy *phy, struct refclk_scale *clk_priv, uint32_t rate)
 {
 	uint32_t source;
 	int32_t i;
@@ -133,12 +131,9 @@ int32_t clk_set_rate(struct ad9361_rf_phy *phy,
 			case TX_REFCLK:
 			case RX_REFCLK:
 			case BB_REFCLK:
-				round_rate = ad9361_clk_factor_round_rate(clk_priv, rate,
-								&phy->clk_refin->rate);
-				ad9361_clk_factor_set_rate(clk_priv, round_rate,
-						phy->clk_refin->rate);
-				phy->clks[source]->rate = ad9361_clk_factor_recalc_rate(clk_priv,
-												phy->clk_refin->rate);
+				round_rate = ad9361_clk_factor_round_rate(clk_priv, rate, &phy->clk_refin->rate);
+				ad9361_clk_factor_set_rate(clk_priv, round_rate,phy->clk_refin->rate);
+				phy->clks[source]->rate = ad9361_clk_factor_recalc_rate(clk_priv, phy->clk_refin->rate);
 				break;
 			case TX_RFPLL_INT:
 			case RX_RFPLL_INT:
@@ -189,8 +184,7 @@ int32_t clk_set_rate(struct ad9361_rf_phy *phy,
 		}
 		for(i = BB_REFCLK; i < BBPLL_CLK; i++)
 		{
-			phy->clks[i]->rate = ad9361_clk_factor_recalc_rate(phy->ref_clk_scale[i],
-									phy->clk_refin->rate);
+			phy->clks[i]->rate = ad9361_clk_factor_recalc_rate(phy->ref_clk_scale[i], phy->clk_refin->rate);
 		}
 		phy->clks[BBPLL_CLK]->rate = ad9361_bbpll_recalc_rate(phy->ref_clk_scale[BBPLL_CLK],
 										phy->clks[phy->ref_clk_scale[BBPLL_CLK]->parent_source]->rate);
@@ -214,12 +208,9 @@ int32_t clk_set_rate(struct ad9361_rf_phy *phy,
 		}
 	} else {
 		if ((source == BBPLL_CLK) && !phy->bbpll_initialized) {
-			round_rate = ad9361_bbpll_round_rate(clk_priv, rate,
-							&phy->clks[clk_priv->parent_source]->rate);
-			ad9361_bbpll_set_rate(clk_priv, round_rate,
-				phy->clks[clk_priv->parent_source]->rate);
-			phy->clks[source]->rate = ad9361_bbpll_recalc_rate(clk_priv,
-										phy->clks[clk_priv->parent_source]->rate);
+			round_rate = ad9361_bbpll_round_rate(clk_priv, rate, &phy->clks[clk_priv->parent_source]->rate);
+			ad9361_bbpll_set_rate(clk_priv, round_rate, phy->clks[clk_priv->parent_source]->rate);
+			phy->clks[source]->rate = ad9361_bbpll_recalc_rate(clk_priv, phy->clks[clk_priv->parent_source]->rate);
 			phy->bbpll_initialized = true;
 		}
 	}
