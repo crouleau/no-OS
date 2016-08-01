@@ -45,6 +45,10 @@
 #include <stdint.h>
 #include "parameters.h"
 #include "platform.h"
+#ifdef CONSOLE_COMMANDS
+#include "console_commands\command.h"
+#include "console_commands\console.h"
+#endif
 #ifdef XILINX_PLATFORM
 #include <xil_cache.h>
 #endif
@@ -52,6 +56,19 @@
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
 /******************************************************************************/
+#ifdef CONSOLE_COMMANDS
+extern command	  	cmd_list[];
+extern char			cmd_no;
+extern cmd_function	cmd_functions[11];
+unsigned char		cmd				 =  0;
+double				param[5]		 = {0, 0, 0, 0, 0};
+char				param_no		 =  0;
+int					cmd_type		 = -1;
+char				invalid_cmd		 =  0;
+char				received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+										0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+										0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#endif
 
 AD9361_InitParam default_init_param = {
 	/* Identification number */
@@ -452,7 +469,51 @@ printf("== AD9364 Configuration completed! ==\r\n");
 printf("=====================================\r\n");
 printf("\r\n");
 
-	printf("Done.\n");
+#ifdef CONSOLE_COMMANDS
+	//get_help(NULL, 0);
+    
+    printf("######### CONSOLE COMMANDS ENABLED #########\r\n");
+
+	while(1)
+	{
+		uint8_t cmd_cnt;
+		console_get_command(received_cmd, &cmd_cnt);
+
+		/*printf("Rx %d: ",cmd_cnt);
+		uint8_t i;
+		for(i=0; i<cmd_cnt; i++)
+		{
+			printf(&received_cmd[i]);
+		}
+		printf("\r\n");*/
+
+		//printf("cmd expected: %s\r\n",cmd_list[0].name);
+		//cmd_no = 1;
+
+		invalid_cmd = 0;
+		for(cmd = 0; cmd < cmd_no; cmd++)
+		{
+			param_no = 0;
+			cmd_type = console_check_commands(received_cmd, cmd_list[cmd].name,
+											  param, &param_no);
+			if(cmd_type == UNKNOWN_CMD)
+			{
+				invalid_cmd++;
+			}
+			else
+			{
+				cmd_list[cmd].function(param, param_no);
+			}
+		}
+		if(invalid_cmd == cmd_no)
+		{
+			console_print("Invalid command!\n");
+
+		}
+	}
+#endif
+
+	printf("Done - exiting program.\n");
 
 #ifdef XILINX_PLATFORM
 	Xil_DCacheDisable();

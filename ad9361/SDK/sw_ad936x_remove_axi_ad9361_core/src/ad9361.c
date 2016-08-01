@@ -4139,6 +4139,8 @@ static int32_t ad9361_validate_trx_clock_chain(struct ad9361_rf_phy *phy,
 	data_clk = (phy->pdata->rx2tx2 ? 4 : 2) /
 		   ((phy->pdata->port_ctrl.pp_conf[2] & LVDS_MODE) ? 1 : 2) *
 		   rx_path_clks[RX_SAMPL_FREQ];
+           
+    printf("********* data_clk freq: %lu *********\r\n", data_clk);
 
 	/* CMOS Mode */
 	if (!(phy->pdata->port_ctrl.pp_conf[2] & LVDS_MODE) &&
@@ -4235,9 +4237,9 @@ int32_t ad9361_set_trx_clock_chain(struct ad9361_rf_phy *phy,
 	 * If it is disabled we restore the values from the initial calibration.
 	 */
 
-	if (!phy->pdata->dig_interface_tune_fir_disable &&
-		!(phy->bypass_tx_fir && phy->bypass_rx_fir))
+	/*if (!phy->pdata->dig_interface_tune_fir_disable && !(phy->bypass_tx_fir && phy->bypass_rx_fir)){
 		ret = ad9361_dig_tune(phy, 0, SKIP_STORE_RESULT);
+    }*/
 
 	return ad9361_bb_clk_change_handler(phy);
 }
@@ -5747,9 +5749,10 @@ int32_t ad9361_validate_enable_fir(struct ad9361_rf_phy *phy)
 	if (ret < 0) return ret;
 
 	/* See also: ad9361_set_trx_clock_chain() */
-	if (!phy->pdata->dig_interface_tune_fir_disable &&
-		phy->bypass_tx_fir && phy->bypass_rx_fir)
+    //TODO: See if we need to use ad9361_dig_tune, and if so, how to make it work without the AXI interface...
+	/*if (!phy->pdata->dig_interface_tune_fir_disable && phy->bypass_tx_fir && phy->bypass_rx_fir){
 		ad9361_dig_tune(phy, 0, RESTORE_DEFAULT);
+    }*/
 
 	return ad9361_update_rf_bandwidth(phy,
 		valid ? phy->filt_rx_bw_Hz : phy->current_rx_bw_Hz,
